@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Timer</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --warmup:   #f59e0b;
+      --set:      #22c55e;
+      --rest:     #60a5fa;
+      --cooldown: #c084fc;
+      --accent:   #22c55e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+
+    .header-controls { display: flex; align-items: center; gap: 0.75rem; }
+
+    .vol-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .vol-row input[type=range] {
+      width: 80px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .btn-sm {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.875rem;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-sm:hover { background: var(--border); }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem;
+      gap: 1.75rem;
+    }
+
+    /* ── Config Panel ── */
+    .config-panel {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 1.5rem;
+    }
+    .config-panel h2 {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .cfg-field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .cfg-field label {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .cfg-field .unit { font-size: 0.7rem; opacity: 0.7; }
+    .cfg-field input[type=number] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .cfg-field input[type=number]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .cfg-hint {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── Timer Display ── */
+    .timer-display {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .phase-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.875rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .set-info {
+      font-size: 0.9375rem;
+      color: var(--muted);
+      min-height: 1.4em;
+      text-align: center;
+    }
+
+    .time-display {
+      font-size: clamp(5rem, 18vw, 9rem);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      font-family: 'SF Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+      color: var(--accent);
+      transition: color 0.3s;
+    }
+
+    .time-display.flash {
+      animation: pulse 0.18s ease-out;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.12s linear, background 0.3s;
+    }
+
+    .next-up {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      min-height: 1.25em;
+    }
+
+    /* ── Timeline ── */
+    .timeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      justify-content: center;
+      max-width: 560px;
+    }
+    .tl-item {
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tl-item.active {
+      font-weight: 700;
+      border-color: transparent;
+    }
+    .tl-item.past { opacity: 0.3; }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 0.875rem 2rem;
+      border-radius: 0.75rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: filter 0.15s, background 0.15s;
+      min-width: 130px;
+      text-align: center;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      transition: background 0.3s, filter 0.15s;
+    }
+    .btn-primary:hover  { filter: brightness(1.15); }
+    .btn-primary:active { filter: brightness(0.9); }
+
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--border); }
+
+    .shortcuts {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.8;
+    }
+    kbd {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      padding: 0.05rem 0.35rem;
+      font-family: inherit;
+      font-size: 0.7rem;
+    }
+
+    /* ── Done overlay ── */
+    .done-banner {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      text-align: center;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Phase accent overrides */
+    body[data-phase="warmup"]  { --accent: var(--warmup);   }
+    body[data-phase="set"]     { --accent: var(--set);      }
+    body[data-phase="rest"]    { --accent: var(--rest);     }
+    body[data-phase="cooldown"]{ --accent: var(--cooldown); }
+    body[data-phase="done"]    { --accent: var(--set);      }
+  </style>
+</head>
+<body data-phase="set">
+
+<header>
+  <h1>Workout Timer</h1>
+  <div class="header-controls">
+    <div class="vol-row">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+      </svg>
+      <input type="range" id="volume" min="0" max="100" value="70" title="Volume">
+    </div>
+    <button class="btn-sm" id="btn-test">Test Sound</button>
+    <button class="btn-sm" id="btn-config-toggle">⚙ Config</button>
+  </div>
+</header>
+
+<main>
+  <!-- Config panel -->
+  <div class="config-panel" id="config-panel">
+    <h2>Session Configuration</h2>
+    <div class="config-grid">
+      <div class="cfg-field">
+        <label>Warmup <span class="unit">(seconds, 0 = skip)</span></label>
+        <input type="number" id="cfg-warmup" min="0" max="3600" value="120">
+      </div>
+      <div class="cfg-field">
+        <label>Number of Sets</label>
+        <input type="number" id="cfg-sets" min="1" max="50" value="3">
+      </div>
+      <div class="cfg-field">
+        <label>Set Duration <span class="unit">(seconds)</span></label>
+        <input type="number" id="cfg-set-duration" min="5" max="3600" value="45">
+      </div>
+      <div class="cfg-field">
+        <label>Rest Between Sets <span class="unit">(seconds, 0 = skip)</span></label>
+        <input type="number" id="cfg-rest" min="0" max="3600" value="60">
+      </div>
+      <div class="cfg-field">
+        <label>Cooldown <span class="unit">(seconds, 0 = skip)</span></label>
+        <input type="number" id="cfg-cooldown" min="0" max="3600" value="120">
+      </div>
+      <div class="cfg-field">
+        <label>Countdown Beeps <span class="unit">(last N seconds)</span></label>
+        <input type="number" id="cfg-countdown" min="0" max="10" value="3">
+      </div>
+    </div>
+    <p class="cfg-hint">
+      Config is saved automatically. Set a duration to 0 to skip that phase.<br>
+      Rest is inserted between each set (not before set 1 or after the last set).
+    </p>
+  </div>
+
+  <!-- Timer display -->
+  <div class="timer-display hidden" id="timer-display">
+    <div class="phase-tag" id="phase-tag">Warmup</div>
+    <div class="set-info" id="set-info"></div>
+    <div class="time-display" id="time-display">00:00</div>
+    <div class="progress-wrap">
+      <div class="progress-fill" id="progress-fill" style="width:100%"></div>
+    </div>
+    <div class="next-up" id="next-up"></div>
+  </div>
+
+  <!-- Done banner -->
+  <div class="done-banner hidden" id="done-banner">Workout Complete 🎉</div>
+
+  <!-- Phase timeline -->
+  <div class="timeline" id="timeline"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-primary" id="btn-start">Start</button>
+    <button class="btn btn-ghost hidden" id="btn-skip">Skip Phase</button>
+    <button class="btn btn-ghost hidden" id="btn-reset">Reset</button>
+  </div>
+
+  <div class="shortcuts">
+    <kbd>Space</kbd> Start / Pause &nbsp;·&nbsp;
+    <kbd>S</kbd> Skip Phase &nbsp;·&nbsp;
+    <kbd>R</kbd> Reset
+  </div>
+</main>
+
+<script>
+// ─── Audio Engine ────────────────────────────────────────────────────────────
+
+let _audioCtx = null;
+
+function audioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+function vol() {
+  return parseInt(document.getElementById('volume').value, 10) / 100;
+}
+
+function tone(freq, dur, offset = 0, amp = 0.35, shape = 'sine') {
+  const ctx = audioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = shape;
+  osc.frequency.value = freq;
+  const t = ctx.currentTime + offset;
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(amp * vol(), t + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+}
+
+const SFX = {
+  // Short beep for each countdown second
+  beep:      () => tone(880, 0.12, 0, 0.4),
+  // Higher pitch for the final second
+  beepFinal: () => tone(1320, 0.18, 0, 0.5),
+  // Ascending three-note "GO!" for set start
+  set: () => {
+    tone(523, 0.12, 0.00, 0.3);
+    tone(659, 0.12, 0.14, 0.3);
+    tone(784, 0.22, 0.28, 0.45);
+  },
+  // Soft descending for rest
+  rest: () => {
+    tone(523, 0.18, 0.00, 0.25);
+    tone(392, 0.28, 0.22, 0.2);
+  },
+  // Rising two-note for warmup
+  warmup: () => {
+    tone(440, 0.18, 0.00, 0.3);
+    tone(554, 0.28, 0.22, 0.3);
+  },
+  // Gentle descending for cooldown
+  cooldown: () => {
+    tone(659, 0.14, 0.00, 0.25);
+    tone(523, 0.14, 0.18, 0.25);
+    tone(392, 0.28, 0.36, 0.2);
+  },
+  // Victory chord
+  done: () => {
+    tone(523,  0.22, 0.00, 0.4);
+    tone(659,  0.22, 0.26, 0.4);
+    tone(784,  0.22, 0.52, 0.4);
+    tone(1047, 0.55, 0.78, 0.5);
+  },
+};
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'wt_config_v1';
+
+function readConfig() {
+  return {
+    warmup:      Math.max(0, parseInt(document.getElementById('cfg-warmup').value)      || 0),
+    sets:        Math.max(1, parseInt(document.getElementById('cfg-sets').value)         || 1),
+    setDuration: Math.max(5, parseInt(document.getElementById('cfg-set-duration').value) || 30),
+    rest:        Math.max(0, parseInt(document.getElementById('cfg-rest').value)         || 0),
+    cooldown:    Math.max(0, parseInt(document.getElementById('cfg-cooldown').value)     || 0),
+    countdownN:  Math.max(0, parseInt(document.getElementById('cfg-countdown').value)   || 0),
+  };
+}
+
+function saveConfig() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(readConfig())); } catch {}
+}
+
+function loadConfig() {
+  try {
+    const c = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!c) return;
+    const map = {
+      warmup:      'cfg-warmup',
+      sets:        'cfg-sets',
+      setDuration: 'cfg-set-duration',
+      rest:        'cfg-rest',
+      cooldown:    'cfg-cooldown',
+      countdownN:  'cfg-countdown',
+    };
+    for (const [key, id] of Object.entries(map)) {
+      if (c[key] !== undefined) document.getElementById(id).value = c[key];
+    }
+  } catch {}
+}
+
+// ─── Phase Builder ───────────────────────────────────────────────────────────
+
+function buildPhases(cfg) {
+  const phases = [];
+  if (cfg.warmup > 0) {
+    phases.push({ label: 'Warmup', type: 'warmup', duration: cfg.warmup });
+  }
+  for (let i = 1; i <= cfg.sets; i++) {
+    if (i > 1 && cfg.rest > 0) {
+      phases.push({ label: 'Rest', type: 'rest', duration: cfg.rest });
+    }
+    phases.push({
+      label: cfg.sets === 1 ? 'Set' : `Set ${i}`,
+      type: 'set',
+      duration: cfg.setDuration,
+      setNum: i,
+      totalSets: cfg.sets,
+    });
+  }
+  if (cfg.cooldown > 0) {
+    phases.push({ label: 'Cooldown', type: 'cooldown', duration: cfg.cooldown });
+  }
+  return phases;
+}
+
+function fmtTime(sec) {
+  const s = Math.max(0, Math.ceil(sec));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function fmtDur(sec) {
+  if (sec >= 60) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return s ? `${m}m ${s}s` : `${m}m`;
+  }
+  return `${sec}s`;
+}
+
+// ─── Timer State Machine ─────────────────────────────────────────────────────
+
+const T = {
+  phases: [],
+  idx: 0,
+  phaseStartTs: 0,   // rAF timestamp of when current phase began
+  pausedLeft: 0,     // seconds remaining when paused
+  status: 'idle',    // 'idle' | 'running' | 'paused' | 'done'
+  cfg: null,
+  rafId: null,
+  lastBeep: -1,
+  initNextTick: false, // on first tick after start/resume, set phaseStartTs from ts
+};
+
+function phaseSound(type) {
+  ({ warmup: SFX.warmup, set: SFX.set, rest: SFX.rest, cooldown: SFX.cooldown }[type] || SFX.set)();
+}
+
+function enterPhase(idx, ts) {
+  T.idx = idx;
+  T.lastBeep = -1;
+  T.phaseStartTs = ts;
+  const phase = T.phases[idx];
+  phaseSound(phase.type);
+  updateTimerUI(phase.duration, phase);
+}
+
+function tick(ts) {
+  if (T.status !== 'running') return;
+
+  if (T.initNextTick) {
+    T.initNextTick = false;
+    // Re-anchor start time: we want timeLeft = T.pausedLeft
+    T.phaseStartTs = ts - (T.phases[T.idx].duration - T.pausedLeft) * 1000;
+  }
+
+  const phase = T.phases[T.idx];
+  const elapsed = (ts - T.phaseStartTs) / 1000;
+  const left = phase.duration - elapsed;
+
+  if (left <= 0) {
+    updateTimerUI(0, phase);
+    advancePhase(ts);
+    return;
+  }
+
+  // Countdown beeps
+  const ceiled = Math.ceil(left);
+  if (T.cfg.countdownN > 0 && ceiled <= T.cfg.countdownN && ceiled !== T.lastBeep) {
+    T.lastBeep = ceiled;
+    ceiled === 1 ? SFX.beepFinal() : SFX.beep();
+    // Visual flash on the countdown seconds
+    const el = document.getElementById('time-display');
+    el.classList.remove('flash');
+    void el.offsetWidth; // reflow to restart animation
+    el.classList.add('flash');
+  }
+
+  updateTimerUI(left, phase);
+  T.rafId = requestAnimationFrame(tick);
+}
+
+function advancePhase(ts) {
+  const next = T.idx + 1;
+  if (next >= T.phases.length) {
+    T.status = 'done';
+    SFX.done();
+    renderDone();
+    return;
+  }
+  enterPhase(next, ts);
+  T.rafId = requestAnimationFrame(tick);
+}
+
+function startTimer() {
+  const cfg = readConfig();
+  saveConfig();
+  const phases = buildPhases(cfg);
+  if (phases.length === 0) return;
+
+  T.phases = phases;
+  T.idx = 0;
+  T.cfg = cfg;
+  T.status = 'running';
+  T.rafId = null;
+  T.lastBeep = -1;
+  T.initNextTick = false;
+
+  renderTimeline(phases);
+  showTimerView();
+  setStartLabel('Pause');
+  showSkipReset();
+
+  // Enter phase on first rAF so phaseStartTs uses consistent clock
+  T.rafId = requestAnimationFrame((ts) => {
+    enterPhase(0, ts);
+    T.rafId = requestAnimationFrame(tick);
+  });
+}
+
+function pauseTimer() {
+  if (T.status !== 'running') return;
+  cancelAnimationFrame(T.rafId);
+  const elapsed = (performance.now() - T.phaseStartTs) / 1000;
+  T.pausedLeft = Math.max(0, T.phases[T.idx].duration - elapsed);
+  T.status = 'paused';
+  setStartLabel('Resume');
+}
+
+function resumeTimer() {
+  if (T.status !== 'paused') return;
+  T.status = 'running';
+  T.initNextTick = true;
+  setStartLabel('Pause');
+  T.rafId = requestAnimationFrame(tick);
+}
+
+function skipPhase() {
+  if (T.status === 'idle' || T.status === 'done') return;
+  const wasRunning = T.status === 'running';
+  cancelAnimationFrame(T.rafId);
+  const next = T.idx + 1;
+  if (next >= T.phases.length) {
+    T.status = 'done';
+    SFX.done();
+    renderDone();
+    return;
+  }
+  T.status = 'running';
+  T.initNextTick = false;
+  T.rafId = requestAnimationFrame((ts) => {
+    enterPhase(next, ts);
+    T.rafId = requestAnimationFrame(tick);
+  });
+  setStartLabel('Pause');
+}
+
+function resetTimer() {
+  cancelAnimationFrame(T.rafId);
+  Object.assign(T, {
+    phases: [], idx: 0, phaseStartTs: 0, pausedLeft: 0,
+    status: 'idle', cfg: null, rafId: null, lastBeep: -1, initNextTick: false,
+  });
+  document.body.dataset.phase = 'set';
+  showConfigView();
+}
+
+// ─── UI Helpers ──────────────────────────────────────────────────────────────
+
+const COLORS = { warmup: '#f59e0b', set: '#22c55e', rest: '#60a5fa', cooldown: '#c084fc' };
+
+function updateTimerUI(left, phase) {
+  document.getElementById('time-display').textContent = fmtTime(left);
+  document.getElementById('progress-fill').style.width =
+    ((left / phase.duration) * 100).toFixed(2) + '%';
+  document.getElementById('progress-fill').style.background = COLORS[phase.type] || COLORS.set;
+  document.getElementById('phase-tag').textContent = phase.label;
+  document.getElementById('phase-tag').style.color = COLORS[phase.type] || COLORS.set;
+  document.getElementById('phase-tag').style.background =
+    (COLORS[phase.type] || COLORS.set).replace(')', ', 0.15)').replace('rgb', 'rgba').replace('#', '') + '28';
+  // Simpler: just use opacity bg
+  document.getElementById('phase-tag').style.background =
+    `color-mix(in srgb, ${COLORS[phase.type] || COLORS.set} 15%, transparent)`;
+  document.body.dataset.phase = phase.type;
+
+  if (phase.type === 'set' && phase.totalSets > 1) {
+    document.getElementById('set-info').textContent = `Set ${phase.setNum} of ${phase.totalSets}`;
+  } else {
+    document.getElementById('set-info').textContent = '';
+  }
+
+  // Next up label
+  const nextPhase = T.phases[T.idx + 1];
+  if (nextPhase) {
+    document.getElementById('next-up').textContent =
+      `Next: ${nextPhase.label} (${fmtDur(nextPhase.duration)})`;
+  } else {
+    document.getElementById('next-up').textContent = 'Final phase';
+  }
+
+  // Timeline highlight
+  document.querySelectorAll('.tl-item').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    el.style.background = '';
+    el.style.color = '';
+    el.style.borderColor = '';
+    if (i < T.idx) {
+      el.classList.add('past');
+    } else if (i === T.idx) {
+      el.classList.add('active');
+      const c = COLORS[phase.type] || COLORS.set;
+      el.style.background = c;
+      el.style.color = '#000';
+      el.style.borderColor = c;
+    }
+  });
+}
+
+function renderTimeline(phases) {
+  document.getElementById('timeline').innerHTML =
+    phases.map((p, i) =>
+      `<div class="tl-item" data-i="${i}">${p.label}</div>`
+    ).join('');
+}
+
+function renderDone() {
+  document.getElementById('phase-tag').textContent = 'Done';
+  document.getElementById('set-info').textContent = '';
+  document.getElementById('time-display').textContent = '00:00';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('next-up').textContent = '';
+  document.getElementById('done-banner').classList.remove('hidden');
+  document.getElementById('btn-start').classList.add('hidden');
+  document.getElementById('btn-skip').classList.add('hidden');
+  document.getElementById('btn-reset').classList.remove('hidden');
+  document.body.dataset.phase = 'done';
+  document.querySelectorAll('.tl-item').forEach(el => {
+    el.classList.remove('active');
+    el.classList.add('past');
+    el.style.background = '';
+    el.style.color = '';
+    el.style.borderColor = '';
+  });
+}
+
+function showTimerView() {
+  document.getElementById('config-panel').classList.add('hidden');
+  document.getElementById('timer-display').classList.remove('hidden');
+  document.getElementById('done-banner').classList.add('hidden');
+  document.getElementById('btn-start').classList.remove('hidden');
+}
+
+function showConfigView() {
+  document.getElementById('config-panel').classList.remove('hidden');
+  document.getElementById('timer-display').classList.add('hidden');
+  document.getElementById('done-banner').classList.add('hidden');
+  document.getElementById('timeline').innerHTML = '';
+  document.getElementById('btn-start').classList.remove('hidden');
+  setStartLabel('Start');
+  document.getElementById('btn-skip').classList.add('hidden');
+  document.getElementById('btn-reset').classList.add('hidden');
+}
+
+function setStartLabel(label) {
+  document.getElementById('btn-start').textContent = label;
+}
+
+function showSkipReset() {
+  document.getElementById('btn-skip').classList.remove('hidden');
+  document.getElementById('btn-reset').classList.remove('hidden');
+}
+
+// ─── Event Wiring ─────────────────────────────────────────────────────────────
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  if      (T.status === 'idle')    startTimer();
+  else if (T.status === 'running') pauseTimer();
+  else if (T.status === 'paused')  resumeTimer();
+});
+
+document.getElementById('btn-skip').addEventListener('click', skipPhase);
+document.getElementById('btn-reset').addEventListener('click', resetTimer);
+
+document.getElementById('btn-test').addEventListener('click', () => {
+  SFX.set();
+  setTimeout(SFX.beep, 600);
+  setTimeout(SFX.beepFinal, 900);
+});
+
+document.getElementById('btn-config-toggle').addEventListener('click', () => {
+  if (T.status === 'idle') {
+    document.getElementById('config-panel').classList.toggle('hidden');
+  } else {
+    // Running or paused: reset to config
+    resetTimer();
+  }
+});
+
+// Auto-save config on any input change
+document.querySelectorAll('.config-panel input').forEach(el =>
+  el.addEventListener('change', saveConfig)
+);
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    document.getElementById('btn-start').click();
+  } else if (e.key === 's' || e.key === 'S') {
+    if (T.status === 'running' || T.status === 'paused') skipPhase();
+  } else if (e.key === 'r' || e.key === 'R') {
+    if (T.status !== 'idle') resetTimer();
+  }
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadConfig();
+</script>
+</body>
+</html>
