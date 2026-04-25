@@ -122,6 +122,7 @@
     .tc-icon { font-size: 1.5rem; line-height: 1; margin-bottom: 0.35rem; display: block; }
     .tc-name { font-size: 0.9rem; font-weight: 700; display: block; }
     .tc-desc { font-size: 0.72rem; color: var(--muted); display: block; line-height: 1.4; }
+    .tc-time { font-size: 0.7rem; color: var(--accent); font-weight: 600; display: block; margin-top: 0.25rem; }
 
     /* ── Config Panel ── */
     .config-panel {
@@ -185,6 +186,60 @@
     .cfg-field input[type=text]:focus {
       outline: none;
       border-color: var(--accent);
+    }
+    .cfg-field select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      width: 100%;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%238b949e'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2rem;
+    }
+    .cfg-field select:focus { outline: none; border-color: var(--accent); }
+    .cfg-field select option { background: #1c2128; color: var(--text); }
+    .sn-custom-row { display: flex; gap: 0.4rem; margin-top: 0.35rem; }
+    .sn-custom-row input { flex: 1; }
+    .btn-add-ex {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.35rem 0.6rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-add-ex:hover { background: var(--border); }
+    .cfg-tick-row {
+      margin-top: 1rem;
+      padding: 0.625rem 0.75rem;
+      background: var(--bg);
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+    }
+    .cfg-tick-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.875rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .cfg-tick-label input[type=checkbox] {
+      accent-color: var(--accent);
+      width: 1rem;
+      height: 1rem;
+      cursor: pointer;
+      flex-shrink: 0;
     }
 
     /* ── Set Names ── */
@@ -430,6 +485,12 @@
         <input type="number" id="cfg-countdown" min="0" max="10" value="3">
       </div>
     </div>
+    <div class="cfg-tick-row">
+      <label class="cfg-tick-label">
+        <input type="checkbox" id="cfg-tick">
+        Signal every second during workout
+      </label>
+    </div>
     <div class="set-names-wrap hidden" id="set-names-wrap"></div>
     <p class="cfg-hint">
       Config is saved automatically. Set a duration to 0 to skip that phase.<br>
@@ -526,6 +587,7 @@ const SFX = {
     tone(784,  0.22, 0.52, 0.4);
     tone(1047, 0.55, 0.78, 0.5);
   },
+  tick: () => tone(660, 0.04, 0, 0.1),
 };
 
 // ─── Workflow Templates ───────────────────────────────────────────────────────
@@ -575,15 +637,24 @@ const TEMPLATES = [
   },
 ];
 
+function calcTplTotal(cfg) {
+  const { warmup, sets, setDuration, rest, cooldown } = cfg;
+  return warmup + sets * setDuration + Math.max(0, sets - 1) * rest + cooldown;
+}
+
 function renderTemplates() {
   const grid = document.getElementById('template-grid');
-  grid.innerHTML = TEMPLATES.map(t =>
-    `<button class="template-card" data-id="${t.id}">` +
+  grid.innerHTML = TEMPLATES.map(t => {
+    const timeStr = t.config
+      ? `<span class="tc-time">${fmtDur(calcTplTotal(t.config))}</span>`
+      : '';
+    return `<button class="template-card" data-id="${t.id}">` +
       `<span class="tc-icon">${t.icon}</span>` +
       `<span class="tc-name">${t.name}</span>` +
       `<span class="tc-desc">${t.desc}</span>` +
-    `</button>`
-  ).join('');
+      timeStr +
+    `</button>`;
+  }).join('');
   grid.querySelectorAll('.template-card').forEach(card =>
     card.addEventListener('click', () => applyTemplate(card.dataset.id))
   );
@@ -600,7 +671,7 @@ function applyTemplate(id) {
     document.getElementById('cfg-rest').value = rest;
     document.getElementById('cfg-cooldown').value = cooldown;
     document.getElementById('cfg-countdown').value = countdownN;
-    buildSetNameInputs(sets);
+    buildSetNameInputs(sets, []);
     saveConfig();
   }
   showConfigView();
@@ -609,26 +680,114 @@ function applyTemplate(id) {
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'wt_config_v1';
+const USER_EX_KEY = 'wt_exercises_v1';
 
-function buildSetNameInputs(count) {
+const PRESET_EXERCISES = [
+  'Push-ups', 'Pull-ups', 'Squats', 'Lunges', 'Burpees', 'Plank',
+  'Sit-ups', 'Crunches', 'Mountain Climbers', 'Jumping Jacks',
+  'Deadlifts', 'Bench Press', 'Rows', 'Shoulder Press', 'Box Jumps',
+  'Dips', 'Kettlebell Swings', 'Jump Rope', 'Sprints', 'Hip Thrusts',
+];
+
+function loadUserExercises() {
+  try { return JSON.parse(localStorage.getItem(USER_EX_KEY)) || []; } catch { return []; }
+}
+
+function saveUserExercises(list) {
+  try { localStorage.setItem(USER_EX_KEY, JSON.stringify(list)); } catch {}
+}
+
+function allExercises() {
+  const user = loadUserExercises();
+  return [...PRESET_EXERCISES, ...user.filter(e => !PRESET_EXERCISES.includes(e))];
+}
+
+function buildSetNameInputs(count, initialValues = null) {
   const wrap = document.getElementById('set-names-wrap');
-  const existing = Array.from(wrap.querySelectorAll('.cfg-set-name')).map(el => el.value);
   if (count < 1) { wrap.classList.add('hidden'); wrap.innerHTML = ''; return; }
 
+  const existing = initialValues || Array.from(wrap.querySelectorAll('[data-set-idx]')).map(el => {
+    const sel = el.querySelector('.sn-select');
+    if (!sel) return '';
+    return sel.value === '__custom__' ? (el.querySelector('.sn-input')?.value.trim() || '') : sel.value;
+  });
+
+  const exercises = allExercises();
   let html = `<h3>Set Names <span class="unit">(optional)</span></h3><div class="set-names-grid">`;
   for (let i = 0; i < count; i++) {
-    const val = (existing[i] || '').replace(/"/g, '&quot;');
-    html += `<div class="cfg-field"><label>Set ${i + 1}</label>` +
-      `<input type="text" class="cfg-set-name" placeholder="e.g. Push-ups" value="${val}" maxlength="30"></div>`;
+    const val = (existing[i] || '').trim();
+    const isKnown = val === '' || exercises.includes(val);
+    const selectVal = isKnown ? val : '__custom__';
+    const options =
+      `<option value="">— Pick Exercise —</option>` +
+      exercises.map(e =>
+        `<option value="${e.replace(/"/g, '&quot;')}"${e === val ? ' selected' : ''}>${e}</option>`
+      ).join('') +
+      `<option value="__custom__"${selectVal === '__custom__' ? ' selected' : ''}>✏ Custom...</option>`;
+    const customVal = selectVal === '__custom__' ? val.replace(/"/g, '&quot;') : '';
+    html +=
+      `<div class="cfg-field" data-set-idx="${i}">` +
+        `<label>Set ${i + 1}</label>` +
+        `<select class="sn-select">${options}</select>` +
+        `<div class="sn-custom-row${selectVal !== '__custom__' ? ' hidden' : ''}">` +
+          `<input type="text" class="sn-input" placeholder="Exercise name…" maxlength="30" value="${customVal}">` +
+          `<button type="button" class="btn-add-ex">Add</button>` +
+        `</div>` +
+      `</div>`;
   }
   html += '</div>';
   wrap.innerHTML = html;
   wrap.classList.remove('hidden');
-  wrap.querySelectorAll('.cfg-set-name').forEach(el => el.addEventListener('change', saveConfig));
+
+  wrap.querySelectorAll('.sn-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const row = sel.closest('[data-set-idx]');
+      const customRow = row.querySelector('.sn-custom-row');
+      if (sel.value === '__custom__') {
+        customRow.classList.remove('hidden');
+        row.querySelector('.sn-input').focus();
+      } else {
+        customRow.classList.add('hidden');
+      }
+      saveConfig();
+    });
+  });
+
+  wrap.querySelectorAll('.btn-add-ex').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('[data-set-idx]');
+      const input = row.querySelector('.sn-input');
+      const name = input.value.trim();
+      if (!name) return;
+      const list = loadUserExercises();
+      if (!PRESET_EXERCISES.includes(name) && !list.includes(name)) {
+        list.push(name);
+        saveUserExercises(list);
+      }
+      const currentCount = wrap.querySelectorAll('[data-set-idx]').length;
+      buildSetNameInputs(currentCount);
+      const idx = row.dataset.setIdx;
+      const newRow = wrap.querySelector(`[data-set-idx="${idx}"]`);
+      if (newRow) {
+        const newSel = newRow.querySelector('.sn-select');
+        if (newSel) {
+          newSel.value = name;
+          newRow.querySelector('.sn-custom-row')?.classList.add('hidden');
+        }
+      }
+      saveConfig();
+    });
+  });
+
+  wrap.querySelectorAll('.sn-input').forEach(el => el.addEventListener('input', saveConfig));
 }
 
 function readConfig() {
-  const setNames = Array.from(document.querySelectorAll('.cfg-set-name')).map(el => el.value.trim());
+  const setNames = Array.from(document.querySelectorAll('[data-set-idx]')).map(el => {
+    const sel = el.querySelector('.sn-select');
+    if (!sel) return '';
+    return sel.value === '__custom__' ? (el.querySelector('.sn-input')?.value.trim() || '') : sel.value;
+  });
   return {
     warmup:      Math.max(0, parseInt(document.getElementById('cfg-warmup').value)      || 0),
     sets:        Math.max(1, parseInt(document.getElementById('cfg-sets').value)         || 1),
@@ -636,6 +795,7 @@ function readConfig() {
     rest:        Math.max(0, parseInt(document.getElementById('cfg-rest').value)         || 0),
     cooldown:    Math.max(0, parseInt(document.getElementById('cfg-cooldown').value)     || 0),
     countdownN:  Math.max(0, parseInt(document.getElementById('cfg-countdown').value)   || 0),
+    tickEvery:   document.getElementById('cfg-tick')?.checked || false,
     setNames,
   };
 }
@@ -659,11 +819,19 @@ function loadConfig() {
     for (const [key, id] of Object.entries(map)) {
       if (c[key] !== undefined) document.getElementById(id).value = c[key];
     }
-    buildSetNameInputs(c.sets || 3);
-    if (Array.isArray(c.setNames)) {
-      const inputs = document.querySelectorAll('.cfg-set-name');
-      c.setNames.forEach((name, i) => { if (inputs[i]) inputs[i].value = name; });
+    if (c.tickEvery) {
+      const el = document.getElementById('cfg-tick');
+      if (el) el.checked = true;
     }
+    const savedNames = Array.isArray(c.setNames) ? c.setNames : [];
+    const known = allExercises();
+    const novel = savedNames.filter(n => n && !known.includes(n));
+    if (novel.length) {
+      const list = loadUserExercises();
+      novel.forEach(n => { if (!list.includes(n)) list.push(n); });
+      saveUserExercises(list);
+    }
+    buildSetNameInputs(c.sets || 3, savedNames);
   } catch { buildSetNameInputs(3); }
 }
 
@@ -717,6 +885,7 @@ const T = {
   cfg: null,
   rafId: null,
   lastBeep: -1,
+  lastTick: -1,
   initNextTick: false,
 };
 
@@ -727,6 +896,7 @@ function phaseSound(type) {
 function enterPhase(idx, ts) {
   T.idx = idx;
   T.lastBeep = -1;
+  T.lastTick = -1;
   T.phaseStartTs = ts;
   const phase = T.phases[idx];
   phaseSound(phase.type);
@@ -752,13 +922,18 @@ function tick(ts) {
   }
 
   const ceiled = Math.ceil(left);
-  if (T.cfg.countdownN > 0 && ceiled <= T.cfg.countdownN && ceiled !== T.lastBeep) {
-    T.lastBeep = ceiled;
-    ceiled === 1 ? SFX.beepFinal() : SFX.beep();
-    const el = document.getElementById('time-display');
-    el.classList.remove('flash');
-    void el.offsetWidth;
-    el.classList.add('flash');
+  if (ceiled !== T.lastTick) {
+    T.lastTick = ceiled;
+    if (T.cfg.countdownN > 0 && ceiled <= T.cfg.countdownN) {
+      T.lastBeep = ceiled;
+      ceiled === 1 ? SFX.beepFinal() : SFX.beep();
+      const el = document.getElementById('time-display');
+      el.classList.remove('flash');
+      void el.offsetWidth;
+      el.classList.add('flash');
+    } else if (T.cfg.tickEvery) {
+      SFX.tick();
+    }
   }
 
   updateTimerUI(left, phase);
@@ -789,6 +964,7 @@ function startTimer() {
   T.status = 'running';
   T.rafId = null;
   T.lastBeep = -1;
+  T.lastTick = -1;
   T.initNextTick = false;
 
   renderTimeline(phases);
@@ -842,7 +1018,7 @@ function resetTimer() {
   cancelAnimationFrame(T.rafId);
   Object.assign(T, {
     phases: [], idx: 0, phaseStartTs: 0, pausedLeft: 0,
-    status: 'idle', cfg: null, rafId: null, lastBeep: -1, initNextTick: false,
+    status: 'idle', cfg: null, rafId: null, lastBeep: -1, lastTick: -1, initNextTick: false,
   });
   document.body.dataset.phase = 'set';
   showTemplateView();
@@ -1005,6 +1181,7 @@ document.getElementById('cfg-sets').addEventListener('input', () => {
 document.querySelectorAll('.config-panel input[type=number]').forEach(el =>
   el.addEventListener('change', saveConfig)
 );
+document.getElementById('cfg-tick').addEventListener('change', saveConfig);
 
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
