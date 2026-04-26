@@ -124,6 +124,68 @@
     .tc-desc { font-size: 0.72rem; color: var(--muted); display: block; line-height: 1.4; }
     .tc-time { font-size: 0.7rem; color: var(--accent); font-weight: 600; display: block; margin-top: 0.25rem; }
 
+    /* ── Ready View ── */
+    .ready-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      max-width: 480px;
+    }
+    .ready-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 1.75rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
+      text-align: center;
+    }
+    .ready-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+    .ready-total {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--accent);
+      line-height: 1;
+      font-family: 'SF Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .ready-meta { font-size: 0.8125rem; color: var(--muted); }
+    .ready-names {
+      font-size: 0.875rem;
+      color: var(--text);
+      line-height: 1.65;
+      margin-top: 0.5rem;
+      padding-top: 0.875rem;
+      border-top: 1px solid var(--border);
+      width: 100%;
+    }
+    #btn-ready-start { width: 100%; max-width: 320px; padding: 1rem 2rem; font-size: 1rem; }
+    .btn-change {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-family: inherit;
+      padding: 0.25rem;
+    }
+    .btn-change:hover { color: var(--text); }
+
     /* ── Config Panel ── */
     .config-panel {
       width: 100%;
@@ -447,6 +509,18 @@
 </header>
 
 <main>
+  <!-- Ready view (shown when config is already saved) -->
+  <div class="ready-view hidden" id="ready-view">
+    <div class="ready-card">
+      <div class="ready-label">Today's Workout</div>
+      <div class="ready-total" id="ready-total"></div>
+      <div class="ready-meta" id="ready-meta"></div>
+      <div class="ready-names hidden" id="ready-names"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-ready-start">Start Workout</button>
+    <button class="btn-change" id="btn-change-workout">Change Workout</button>
+  </div>
+
   <!-- Template picker -->
   <div class="template-picker" id="template-picker">
     <h2>Choose a Workout</h2>
@@ -457,7 +531,7 @@
   <div class="config-panel hidden" id="config-panel">
     <div class="cfg-panel-hdr">
       <h2>Session Configuration</h2>
-      <button class="btn-sm" id="btn-back-templates">← Templates</button>
+      <button class="btn-sm" id="btn-back-templates">← Back</button>
     </div>
     <div class="config-grid">
       <div class="cfg-field">
@@ -1021,7 +1095,8 @@ function resetTimer() {
     status: 'idle', cfg: null, rafId: null, lastBeep: -1, lastTick: -1, initNextTick: false,
   });
   document.body.dataset.phase = 'set';
-  showTemplateView();
+  if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+  else showTemplateView();
 }
 
 // ─── UI Helpers ──────────────────────────────────────────────────────────────
@@ -1097,8 +1172,49 @@ function renderDone() {
 
 let idleView = 'templates';
 
+function renderReadyCard() {
+  let c;
+  try { c = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch {}
+  if (!c) return;
+
+  document.getElementById('ready-total').textContent = fmtDur(calcTplTotal(c));
+
+  const meta = [];
+  if (c.warmup > 0) meta.push(`${fmtDur(c.warmup)} warmup`);
+  meta.push(`${c.sets} set${c.sets !== 1 ? 's' : ''} · ${fmtDur(c.setDuration)} each`);
+  if (c.rest > 0 && c.sets > 1) meta.push(`${fmtDur(c.rest)} rest`);
+  if (c.cooldown > 0) meta.push(`${fmtDur(c.cooldown)} cooldown`);
+  document.getElementById('ready-meta').textContent = meta.join(' · ');
+
+  const names = (c.setNames || []).filter(n => n);
+  const namesEl = document.getElementById('ready-names');
+  if (names.length) {
+    namesEl.textContent = names.join(' · ');
+    namesEl.classList.remove('hidden');
+  } else {
+    namesEl.classList.add('hidden');
+  }
+}
+
+function showReadyView() {
+  idleView = 'ready';
+  document.getElementById('ready-view').classList.remove('hidden');
+  document.getElementById('template-picker').classList.add('hidden');
+  document.getElementById('config-panel').classList.add('hidden');
+  document.getElementById('timer-display').classList.add('hidden');
+  document.getElementById('done-banner').classList.add('hidden');
+  document.getElementById('timeline').innerHTML = '';
+  document.getElementById('btn-start').classList.add('hidden');
+  document.getElementById('btn-skip').classList.add('hidden');
+  document.getElementById('btn-reset').classList.add('hidden');
+  document.getElementById('btn-config-toggle').textContent = '⚙ Edit';
+  document.body.dataset.phase = 'set';
+  renderReadyCard();
+}
+
 function showTemplateView() {
   idleView = 'templates';
+  document.getElementById('ready-view').classList.add('hidden');
   document.getElementById('template-picker').classList.remove('hidden');
   document.getElementById('config-panel').classList.add('hidden');
   document.getElementById('timer-display').classList.add('hidden');
@@ -1113,6 +1229,7 @@ function showTemplateView() {
 
 function showConfigView() {
   idleView = 'config';
+  document.getElementById('ready-view').classList.add('hidden');
   document.getElementById('template-picker').classList.add('hidden');
   document.getElementById('config-panel').classList.remove('hidden');
   document.getElementById('timer-display').classList.add('hidden');
@@ -1122,11 +1239,12 @@ function showConfigView() {
   setStartLabel('Start');
   document.getElementById('btn-skip').classList.add('hidden');
   document.getElementById('btn-reset').classList.add('hidden');
-  document.getElementById('btn-config-toggle').textContent = '← Templates';
+  document.getElementById('btn-config-toggle').textContent = '← Back';
   document.body.dataset.phase = 'set';
 }
 
 function showTimerView() {
+  document.getElementById('ready-view').classList.add('hidden');
   document.getElementById('template-picker').classList.add('hidden');
   document.getElementById('config-panel').classList.add('hidden');
   document.getElementById('timer-display').classList.remove('hidden');
@@ -1154,7 +1272,13 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
 document.getElementById('btn-skip').addEventListener('click', skipPhase);
 document.getElementById('btn-reset').addEventListener('click', resetTimer);
-document.getElementById('btn-back-templates').addEventListener('click', showTemplateView);
+document.getElementById('btn-back-templates').addEventListener('click', () => {
+  if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+  else showTemplateView();
+});
+
+document.getElementById('btn-ready-start').addEventListener('click', startTimer);
+document.getElementById('btn-change-workout').addEventListener('click', showTemplateView);
 
 document.getElementById('btn-test').addEventListener('click', () => {
   SFX.set();
@@ -1164,8 +1288,12 @@ document.getElementById('btn-test').addEventListener('click', () => {
 
 document.getElementById('btn-config-toggle').addEventListener('click', () => {
   if (T.status === 'idle') {
-    if (idleView === 'templates') showConfigView();
-    else showTemplateView();
+    if (idleView === 'config') {
+      if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+      else showTemplateView();
+    } else {
+      showConfigView();
+    }
   } else {
     resetTimer();
   }
@@ -1184,11 +1312,15 @@ document.querySelectorAll('.config-panel input[type=number]').forEach(el =>
 document.getElementById('cfg-tick').addEventListener('change', saveConfig);
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space') {
     e.preventDefault();
-    if (T.status === 'idle' && idleView === 'templates') return;
-    document.getElementById('btn-start').click();
+    if (T.status === 'idle') {
+      if (idleView === 'ready') startTimer();
+      else if (idleView === 'config') document.getElementById('btn-start').click();
+    } else {
+      document.getElementById('btn-start').click();
+    }
   } else if (e.key === 's' || e.key === 'S') {
     if (T.status === 'running' || T.status === 'paused') skipPhase();
   } else if (e.key === 'r' || e.key === 'R') {
@@ -1199,7 +1331,8 @@ document.addEventListener('keydown', (e) => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 loadConfig();
 renderTemplates();
-// Template picker is the default view; config-panel starts hidden
+if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+else showTemplateView();
 </script>
 </body>
 </html>
