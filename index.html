@@ -484,6 +484,161 @@
 
     .hidden { display: none !important; }
 
+    /* ── Workout Detail View ── */
+    .detail-view {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.875rem;
+    }
+    .detail-back-btn {
+      align-self: flex-start;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0.25rem 0;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .detail-back-btn:hover { color: var(--text); }
+    .detail-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .detail-icon-lg { font-size: 2.5rem; line-height: 1; flex-shrink: 0; }
+    .detail-name {
+      font-size: 1.375rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .detail-total-dur {
+      font-size: 0.875rem;
+      color: var(--accent);
+      font-weight: 600;
+      margin-top: 0.2rem;
+    }
+    .detail-desc-text {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .detail-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    @media (max-width: 480px) {
+      .detail-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .detail-stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.625rem 0.5rem;
+      text-align: center;
+    }
+    .detail-stat-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      display: block;
+    }
+    .detail-stat-lbl {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      display: block;
+      margin-top: 0.15rem;
+    }
+    .detail-section-lbl {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+    .detail-actions {
+      display: flex;
+      gap: 0.625rem;
+      width: 100%;
+    }
+    .detail-actions .btn { flex: 1; min-width: 0; }
+
+    /* ── Phase Bar ── */
+    .phase-bar {
+      display: flex;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      gap: 2px;
+    }
+    .phase-bar-seg {
+      border-radius: 999px;
+      min-width: 3px;
+    }
+    .tl-preview-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.625rem;
+    }
+    .tl-preview-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid;
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+    .tl-pill-dur { opacity: 0.6; font-size: 0.67rem; }
+
+    /* ── Config Preview bar ── */
+    .cfg-preview {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--bg);
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      margin-bottom: 1.125rem;
+    }
+    .cfg-preview-bar { flex: 1; height: 6px; }
+    .cfg-preview-dur {
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── Ready view phase bar ── */
+    .ready-phase-bar {
+      width: 100%;
+      margin-top: 0.25rem;
+    }
+    .ready-phase-bar .phase-bar { height: 6px; }
+
     /* Phase accent overrides */
     body[data-phase="warmup"]  { --accent: var(--warmup);   }
     body[data-phase="set"]     { --accent: var(--set);      }
@@ -516,6 +671,9 @@
       <div class="ready-total" id="ready-total"></div>
       <div class="ready-meta" id="ready-meta"></div>
       <div class="ready-names hidden" id="ready-names"></div>
+      <div class="ready-phase-bar hidden" id="ready-phase-bar">
+        <div class="phase-bar" id="ready-pb"></div>
+      </div>
     </div>
     <button class="btn btn-primary" id="btn-ready-start">Start Workout</button>
     <button class="btn-change" id="btn-change-workout">Change Workout</button>
@@ -527,11 +685,40 @@
     <div class="template-grid" id="template-grid"></div>
   </div>
 
+  <!-- Workout detail view -->
+  <div class="detail-view hidden" id="detail-view">
+    <button class="detail-back-btn" id="btn-detail-back">← All Workouts</button>
+    <div class="detail-card">
+      <div class="detail-header">
+        <span class="detail-icon-lg" id="detail-icon"></span>
+        <div>
+          <div class="detail-name" id="detail-name"></div>
+          <div class="detail-total-dur" id="detail-total"></div>
+        </div>
+      </div>
+      <p class="detail-desc-text" id="detail-desc"></p>
+      <div class="detail-stats-grid" id="detail-stats"></div>
+      <div>
+        <div class="detail-section-lbl">Timeline</div>
+        <div class="phase-bar" id="detail-phase-bar"></div>
+        <div class="tl-preview-pills" id="detail-tl-pills"></div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-primary" id="btn-detail-start">Start Workout</button>
+      <button class="btn btn-ghost" id="btn-detail-customize">Customize</button>
+    </div>
+  </div>
+
   <!-- Config panel -->
   <div class="config-panel hidden" id="config-panel">
     <div class="cfg-panel-hdr">
-      <h2>Session Configuration</h2>
+      <h2>Customize Workout</h2>
       <button class="btn-sm" id="btn-back-templates">← Back</button>
+    </div>
+    <div class="cfg-preview" id="cfg-preview">
+      <div class="phase-bar cfg-preview-bar" id="cfg-phase-bar"></div>
+      <span class="cfg-preview-dur" id="cfg-preview-dur">—</span>
     </div>
     <div class="config-grid">
       <div class="cfg-field">
@@ -730,25 +917,78 @@ function renderTemplates() {
     `</button>`;
   }).join('');
   grid.querySelectorAll('.template-card').forEach(card =>
-    card.addEventListener('click', () => applyTemplate(card.dataset.id))
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      const tpl = TEMPLATES.find(t => t.id === id);
+      if (tpl && tpl.config) showDetailView(id);
+      else applyTemplateToForm(id), showConfigView();
+    })
   );
 }
 
-function applyTemplate(id) {
+let currentDetailId = null;
+
+function applyTemplateToForm(id) {
   const tpl = TEMPLATES.find(t => t.id === id);
-  if (!tpl) return;
-  if (tpl.config) {
-    const { warmup, sets, setDuration, rest, cooldown, countdownN } = tpl.config;
-    document.getElementById('cfg-warmup').value = warmup;
-    document.getElementById('cfg-sets').value = sets;
-    document.getElementById('cfg-set-duration').value = setDuration;
-    document.getElementById('cfg-rest').value = rest;
-    document.getElementById('cfg-cooldown').value = cooldown;
-    document.getElementById('cfg-countdown').value = countdownN;
-    buildSetNameInputs(sets, []);
-    saveConfig();
-  }
-  showConfigView();
+  if (!tpl || !tpl.config) return;
+  const { warmup, sets, setDuration, rest, cooldown, countdownN } = tpl.config;
+  document.getElementById('cfg-warmup').value = warmup;
+  document.getElementById('cfg-sets').value = sets;
+  document.getElementById('cfg-set-duration').value = setDuration;
+  document.getElementById('cfg-rest').value = rest;
+  document.getElementById('cfg-cooldown').value = cooldown;
+  document.getElementById('cfg-countdown').value = countdownN;
+  buildSetNameInputs(sets, []);
+  saveConfig();
+}
+
+const PHASE_COLORS = { warmup: '#f59e0b', set: '#22c55e', rest: '#60a5fa', cooldown: '#c084fc' };
+
+function renderPhaseBar(phases, total, barId) {
+  const bar = document.getElementById(barId);
+  if (!bar) return;
+  bar.innerHTML = phases.map(p => {
+    const pct = (p.duration / total * 100).toFixed(2);
+    return `<div class="phase-bar-seg" style="width:${pct}%;background:${PHASE_COLORS[p.type]}" title="${p.label}: ${fmtDur(p.duration)}"></div>`;
+  }).join('');
+}
+
+function showDetailView(id) {
+  const tpl = TEMPLATES.find(t => t.id === id);
+  if (!tpl || !tpl.config) return;
+  currentDetailId = id;
+
+  document.getElementById('detail-icon').textContent = tpl.icon;
+  document.getElementById('detail-name').textContent = tpl.name;
+  document.getElementById('detail-desc').textContent = tpl.desc;
+
+  const cfg = tpl.config;
+  const total = calcTplTotal(cfg);
+  document.getElementById('detail-total').textContent = fmtDur(total);
+
+  const phases = buildPhases({ ...cfg, setNames: [], tickEvery: false });
+  renderPhaseBar(phases, total, 'detail-phase-bar');
+
+  document.getElementById('detail-tl-pills').innerHTML = phases.map(p =>
+    `<div class="tl-preview-pill" style="border-color:${PHASE_COLORS[p.type]};color:${PHASE_COLORS[p.type]}">` +
+      p.label + `<span class="tl-pill-dur">${fmtDur(p.duration)}</span>` +
+    `</div>`
+  ).join('');
+
+  const stats = [];
+  if (cfg.warmup > 0) stats.push({ val: fmtDur(cfg.warmup), lbl: 'Warmup' });
+  stats.push({ val: cfg.sets, lbl: 'Sets' });
+  stats.push({ val: fmtDur(cfg.setDuration), lbl: 'Work' });
+  if (cfg.rest > 0) stats.push({ val: fmtDur(cfg.rest), lbl: 'Rest' });
+  if (cfg.cooldown > 0) stats.push({ val: fmtDur(cfg.cooldown), lbl: 'Cooldown' });
+  document.getElementById('detail-stats').innerHTML = stats.map(s =>
+    `<div class="detail-stat"><span class="detail-stat-val">${s.val}</span><span class="detail-stat-lbl">${s.lbl}</span></div>`
+  ).join('');
+
+  idleView = 'detail';
+  hideAllViews();
+  document.getElementById('detail-view').classList.remove('hidden');
+  document.getElementById('btn-config-toggle').textContent = '⚙ Config';
 }
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -1101,17 +1341,16 @@ function resetTimer() {
 
 // ─── UI Helpers ──────────────────────────────────────────────────────────────
 
-const COLORS = { warmup: '#f59e0b', set: '#22c55e', rest: '#60a5fa', cooldown: '#c084fc' };
-
 function updateTimerUI(left, phase) {
+  const color = PHASE_COLORS[phase.type] || PHASE_COLORS.set;
   document.getElementById('time-display').textContent = fmtTime(left);
   document.getElementById('progress-fill').style.width =
     ((left / phase.duration) * 100).toFixed(2) + '%';
-  document.getElementById('progress-fill').style.background = COLORS[phase.type] || COLORS.set;
+  document.getElementById('progress-fill').style.background = color;
   document.getElementById('phase-tag').textContent = phase.label;
-  document.getElementById('phase-tag').style.color = COLORS[phase.type] || COLORS.set;
+  document.getElementById('phase-tag').style.color = color;
   document.getElementById('phase-tag').style.background =
-    `color-mix(in srgb, ${COLORS[phase.type] || COLORS.set} 15%, transparent)`;
+    `color-mix(in srgb, ${color} 15%, transparent)`;
   document.body.dataset.phase = phase.type;
 
   if (phase.type === 'set' && phase.totalSets > 1) {
@@ -1137,10 +1376,9 @@ function updateTimerUI(left, phase) {
       el.classList.add('past');
     } else if (i === T.idx) {
       el.classList.add('active');
-      const c = COLORS[phase.type] || COLORS.set;
-      el.style.background = c;
+      el.style.background = color;
       el.style.color = '#000';
-      el.style.borderColor = c;
+      el.style.borderColor = color;
     }
   });
 }
@@ -1172,6 +1410,32 @@ function renderDone() {
 
 let idleView = 'templates';
 
+function hideAllViews(clearTimeline = true) {
+  document.getElementById('ready-view').classList.add('hidden');
+  document.getElementById('template-picker').classList.add('hidden');
+  document.getElementById('detail-view').classList.add('hidden');
+  document.getElementById('config-panel').classList.add('hidden');
+  document.getElementById('timer-display').classList.add('hidden');
+  document.getElementById('done-banner').classList.add('hidden');
+  if (clearTimeline) document.getElementById('timeline').innerHTML = '';
+  document.getElementById('btn-start').classList.add('hidden');
+  document.getElementById('btn-skip').classList.add('hidden');
+  document.getElementById('btn-reset').classList.add('hidden');
+  document.body.dataset.phase = 'set';
+}
+
+function renderConfigPreview() {
+  const cfg = readConfig();
+  const phases = buildPhases({ ...cfg, setNames: [] });
+  const total = phases.reduce((s, p) => s + p.duration, 0);
+  const bar = document.getElementById('cfg-phase-bar');
+  const dur = document.getElementById('cfg-preview-dur');
+  if (!bar || !dur) return;
+  if (total === 0) { bar.innerHTML = ''; dur.textContent = '—'; return; }
+  renderPhaseBar(phases, total, 'cfg-phase-bar');
+  dur.textContent = fmtDur(total);
+}
+
 function renderReadyCard() {
   let c;
   try { c = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch {}
@@ -1194,61 +1458,46 @@ function renderReadyCard() {
   } else {
     namesEl.classList.add('hidden');
   }
+
+  const phases = buildPhases({ ...c, setNames: [] });
+  const total = calcTplTotal(c);
+  const pbWrap = document.getElementById('ready-phase-bar');
+  if (phases.length && total > 0) {
+    renderPhaseBar(phases, total, 'ready-pb');
+    pbWrap.classList.remove('hidden');
+  } else {
+    pbWrap.classList.add('hidden');
+  }
 }
 
 function showReadyView() {
   idleView = 'ready';
+  hideAllViews();
   document.getElementById('ready-view').classList.remove('hidden');
-  document.getElementById('template-picker').classList.add('hidden');
-  document.getElementById('config-panel').classList.add('hidden');
-  document.getElementById('timer-display').classList.add('hidden');
-  document.getElementById('done-banner').classList.add('hidden');
-  document.getElementById('timeline').innerHTML = '';
-  document.getElementById('btn-start').classList.add('hidden');
-  document.getElementById('btn-skip').classList.add('hidden');
-  document.getElementById('btn-reset').classList.add('hidden');
   document.getElementById('btn-config-toggle').textContent = '⚙ Edit';
-  document.body.dataset.phase = 'set';
   renderReadyCard();
 }
 
 function showTemplateView() {
   idleView = 'templates';
-  document.getElementById('ready-view').classList.add('hidden');
+  hideAllViews();
   document.getElementById('template-picker').classList.remove('hidden');
-  document.getElementById('config-panel').classList.add('hidden');
-  document.getElementById('timer-display').classList.add('hidden');
-  document.getElementById('done-banner').classList.add('hidden');
-  document.getElementById('timeline').innerHTML = '';
-  document.getElementById('btn-start').classList.add('hidden');
-  document.getElementById('btn-skip').classList.add('hidden');
-  document.getElementById('btn-reset').classList.add('hidden');
   document.getElementById('btn-config-toggle').textContent = '⚙ Config';
-  document.body.dataset.phase = 'set';
 }
 
 function showConfigView() {
   idleView = 'config';
-  document.getElementById('ready-view').classList.add('hidden');
-  document.getElementById('template-picker').classList.add('hidden');
+  hideAllViews();
   document.getElementById('config-panel').classList.remove('hidden');
-  document.getElementById('timer-display').classList.add('hidden');
-  document.getElementById('done-banner').classList.add('hidden');
-  document.getElementById('timeline').innerHTML = '';
   document.getElementById('btn-start').classList.remove('hidden');
   setStartLabel('Start');
-  document.getElementById('btn-skip').classList.add('hidden');
-  document.getElementById('btn-reset').classList.add('hidden');
   document.getElementById('btn-config-toggle').textContent = '← Back';
-  document.body.dataset.phase = 'set';
+  renderConfigPreview();
 }
 
 function showTimerView() {
-  document.getElementById('ready-view').classList.add('hidden');
-  document.getElementById('template-picker').classList.add('hidden');
-  document.getElementById('config-panel').classList.add('hidden');
+  hideAllViews(false);
   document.getElementById('timer-display').classList.remove('hidden');
-  document.getElementById('done-banner').classList.add('hidden');
   document.getElementById('btn-start').classList.remove('hidden');
   document.getElementById('btn-config-toggle').textContent = '⚙ Config';
 }
@@ -1272,9 +1521,25 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
 document.getElementById('btn-skip').addEventListener('click', skipPhase);
 document.getElementById('btn-reset').addEventListener('click', resetTimer);
+
 document.getElementById('btn-back-templates').addEventListener('click', () => {
-  if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+  if (currentDetailId) showDetailView(currentDetailId);
+  else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
   else showTemplateView();
+});
+
+document.getElementById('btn-detail-back').addEventListener('click', showTemplateView);
+
+document.getElementById('btn-detail-start').addEventListener('click', () => {
+  if (!currentDetailId) return;
+  applyTemplateToForm(currentDetailId);
+  startTimer();
+});
+
+document.getElementById('btn-detail-customize').addEventListener('click', () => {
+  if (!currentDetailId) return;
+  applyTemplateToForm(currentDetailId);
+  showConfigView();
 });
 
 document.getElementById('btn-ready-start').addEventListener('click', startTimer);
@@ -1289,7 +1554,8 @@ document.getElementById('btn-test').addEventListener('click', () => {
 document.getElementById('btn-config-toggle').addEventListener('click', () => {
   if (T.status === 'idle') {
     if (idleView === 'config') {
-      if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+      if (currentDetailId) showDetailView(currentDetailId);
+      else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
       else showTemplateView();
     } else {
       showConfigView();
@@ -1299,15 +1565,16 @@ document.getElementById('btn-config-toggle').addEventListener('click', () => {
   }
 });
 
-// Rebuild set name inputs when set count changes
+// Rebuild set names and update preview when set count changes
 document.getElementById('cfg-sets').addEventListener('input', () => {
   const count = Math.max(1, Math.min(50, parseInt(document.getElementById('cfg-sets').value) || 1));
   buildSetNameInputs(count);
+  renderConfigPreview();
 });
 
-// Auto-save on number input changes
+// Auto-save and update preview on number input changes
 document.querySelectorAll('.config-panel input[type=number]').forEach(el =>
-  el.addEventListener('change', saveConfig)
+  el.addEventListener('change', () => { saveConfig(); renderConfigPreview(); })
 );
 document.getElementById('cfg-tick').addEventListener('change', saveConfig);
 
@@ -1318,6 +1585,7 @@ document.addEventListener('keydown', (e) => {
     if (T.status === 'idle') {
       if (idleView === 'ready') startTimer();
       else if (idleView === 'config') document.getElementById('btn-start').click();
+      else if (idleView === 'detail') document.getElementById('btn-detail-start').click();
     } else {
       document.getElementById('btn-start').click();
     }
