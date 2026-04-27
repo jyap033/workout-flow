@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Workout Timer</title>
+  <title>Workout Flow</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d1117'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%2322c55e' stroke-width='2.5'/%3E%3Cpath d='M16 9v7l4.5 4.5' stroke='%2322c55e' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='16' cy='16' r='1.5' fill='%2322c55e'/%3E%3C/svg%3E">
   <style>
     :root {
       --bg: #0d1117;
@@ -664,15 +665,59 @@
 
     /* ── My Workouts section ── */
     .my-workouts-section { margin-top: 1.625rem; }
-    .my-workouts-section > h2 {
+    .my-workouts-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .my-workouts-hdr h2 {
       font-size: 0.7rem;
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 1.25rem;
+      margin-bottom: 0;
+    }
+    .my-workouts-tools { display: flex; gap: 0.375rem; }
+    .picker-footer {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .btn-link-sm {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.76rem;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0.2rem 0.4rem;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .btn-link-sm:hover { color: var(--text); }
+    .import-feedback {
+      font-size: 0.75rem;
+      min-height: 1.1em;
       text-align: center;
     }
+    .detail-export-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.625rem;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      align-self: flex-start;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .detail-export-btn:hover { color: var(--text); border-color: var(--text); }
     .saved-card-wrapper { position: relative; }
     .saved-delete-btn {
       position: absolute;
@@ -797,9 +842,19 @@
     <h2>Choose a Workout</h2>
     <div class="template-grid" id="template-grid"></div>
     <div class="my-workouts-section hidden" id="my-workouts-section">
-      <h2>My Workouts</h2>
+      <div class="my-workouts-hdr">
+        <h2>My Workouts</h2>
+        <div class="my-workouts-tools">
+          <button class="btn-sm" id="btn-export-all">↓ Export All</button>
+        </div>
+      </div>
       <div class="template-grid" id="my-workouts-grid"></div>
     </div>
+    <div class="picker-footer">
+      <button class="btn-link-sm" id="btn-import-trigger">↑ Import Workouts</button>
+      <div class="import-feedback" id="import-feedback"></div>
+    </div>
+    <input type="file" id="file-import" accept=".json" style="display:none">
   </div>
 
   <!-- Workout detail view -->
@@ -808,10 +863,11 @@
     <div class="detail-card">
       <div class="detail-header">
         <span class="detail-icon-lg" id="detail-icon"></span>
-        <div>
+        <div style="flex:1">
           <div class="detail-name" id="detail-name"></div>
           <div class="detail-total-dur" id="detail-total"></div>
         </div>
+        <button class="detail-export-btn hidden" id="btn-detail-export">↓ Export</button>
       </div>
       <p class="detail-desc-text" id="detail-desc"></p>
       <div class="detail-stats-grid" id="detail-stats"></div>
@@ -1117,6 +1173,7 @@ function showDetailView(id) {
   ).join('');
 
   document.getElementById('btn-detail-customize').textContent = 'Customize';
+  document.getElementById('btn-detail-export').classList.add('hidden');
 
   idleView = 'detail';
   hideAllViews();
@@ -1206,6 +1263,80 @@ function deleteSavedWorkout(id) {
   if (currentDetailId === id) showTemplateView();
 }
 
+// ─── Export / Import ─────────────────────────────────────────────────────────
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportWorkout(id) {
+  const w = loadSavedWorkouts().find(x => x.id === id);
+  if (!w) return;
+  const safeName = w.name.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').toLowerCase();
+  downloadJSON({ version: 1, workouts: [w] }, `${safeName}.json`);
+}
+
+function exportAllWorkouts() {
+  const list = loadSavedWorkouts();
+  if (!list.length) return;
+  downloadJSON({ version: 1, workouts: list }, 'my_workouts.json');
+}
+
+function setImportFeedback(msg, isError = false) {
+  const el = document.getElementById('import-feedback');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#ef4444' : 'var(--accent)';
+  if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+}
+
+function importWorkoutsFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const raw = Array.isArray(data) ? data
+                : Array.isArray(data.workouts) ? data.workouts
+                : null;
+      if (!raw) throw new Error('Unrecognised format.');
+      const valid = raw.filter(w =>
+        w && typeof w.name === 'string' && w.name.trim() && w.config &&
+        typeof w.config.sets === 'number' && typeof w.config.setDuration === 'number'
+      );
+      if (!valid.length) throw new Error('No valid workouts found.');
+      const existing = loadSavedWorkouts();
+      valid.forEach(w => existing.push({
+        id: `u${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
+        name: w.name.trim(),
+        config: {
+          warmup:      Number(w.config.warmup)      || 0,
+          sets:        Math.max(1, Number(w.config.sets) || 1),
+          setDuration: Math.max(5, Number(w.config.setDuration) || 30),
+          rest:        Number(w.config.rest)         || 0,
+          cooldown:    Number(w.config.cooldown)     || 0,
+          countdownN:  Number(w.config.countdownN)   || 3,
+          tickEvery:   Boolean(w.config.tickEvery),
+          setNames:    Array.isArray(w.config.setNames) ? w.config.setNames : [],
+        },
+      }));
+      writeSavedWorkouts(existing);
+      renderSavedWorkouts();
+      const n = valid.length;
+      setImportFeedback(`${n} workout${n !== 1 ? 's' : ''} imported.`);
+    } catch (err) {
+      setImportFeedback(`Import failed: ${err.message}`, true);
+    }
+  };
+  reader.onerror = () => setImportFeedback('Could not read file.', true);
+  reader.readAsText(file);
+}
+
 function renderSavedWorkouts() {
   const list = loadSavedWorkouts();
   const section = document.getElementById('my-workouts-section');
@@ -1269,6 +1400,7 @@ function showSavedDetail(id) {
   ).join('');
 
   document.getElementById('btn-detail-customize').textContent = 'Edit';
+  document.getElementById('btn-detail-export').classList.remove('hidden');
 
   idleView = 'detail';
   hideAllViews();
@@ -1853,6 +1985,22 @@ document.getElementById('btn-detail-customize').addEventListener('click', () => 
 });
 
 document.getElementById('btn-save-workout').addEventListener('click', saveWorkoutToMenu);
+
+document.getElementById('btn-export-all').addEventListener('click', exportAllWorkouts);
+
+document.getElementById('btn-detail-export').addEventListener('click', () => {
+  if (currentDetailId) exportWorkout(currentDetailId);
+});
+
+document.getElementById('btn-import-trigger').addEventListener('click', () => {
+  document.getElementById('file-import').click();
+});
+
+document.getElementById('file-import').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) importWorkoutsFromFile(file);
+  e.target.value = '';
+});
 
 document.getElementById('btn-ready-start').addEventListener('click', startTimer);
 document.getElementById('btn-change-workout').addEventListener('click', showTemplateView);
