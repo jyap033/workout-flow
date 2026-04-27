@@ -718,17 +718,17 @@
       transition: color 0.15s, border-color 0.15s;
     }
     .detail-export-btn:hover { color: var(--text); border-color: var(--text); }
-    .saved-card-wrapper { position: relative; }
+    .saved-card { position: relative; cursor: pointer; }
     .saved-delete-btn {
       position: absolute;
-      top: 0.4rem;
-      right: 0.4rem;
+      top: 0.5rem;
+      right: 0.5rem;
       width: 1.375rem;
       height: 1.375rem;
       border-radius: 50%;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--muted);
+      border: none;
+      background: #ef4444;
+      color: #fff;
       font-size: 0.62rem;
       cursor: pointer;
       display: flex;
@@ -736,11 +736,11 @@
       justify-content: center;
       z-index: 1;
       opacity: 0;
-      transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
+      transition: opacity 0.15s, transform 0.15s;
       line-height: 1;
     }
-    .saved-card-wrapper:hover .saved-delete-btn { opacity: 1; }
-    .saved-delete-btn:hover { background: #ef4444; border-color: #ef4444; color: #fff; }
+    .saved-card:hover .saved-delete-btn { opacity: 1; }
+    .saved-delete-btn:hover { transform: scale(1.15); }
 
     /* ── Config save section ── */
     .cfg-save-section {
@@ -1351,19 +1351,20 @@ function renderSavedWorkouts() {
   document.getElementById('my-workouts-grid').innerHTML = list.map(w => {
     const total = calcTplTotal(w.config);
     const safeId = w.id.replace(/"/g, '');
-    return `<div class="saved-card-wrapper">` +
-      `<button class="template-card" data-saved-id="${safeId}">` +
-        `<span class="tc-icon">⭐</span>` +
-        `<span class="tc-name">${w.name.replace(/</g, '&lt;')}</span>` +
-        `<span class="tc-time">${fmtDur(total)}</span>` +
-      `</button>` +
+    return `<div class="template-card saved-card" data-saved-id="${safeId}">` +
       `<button class="saved-delete-btn" data-delete-id="${safeId}" title="Delete">✕</button>` +
+      `<span class="tc-icon">⭐</span>` +
+      `<span class="tc-name">${w.name.replace(/</g, '&lt;')}</span>` +
+      `<span class="tc-time">${fmtDur(total)}</span>` +
     `</div>`;
   }).join('');
-  document.getElementById('my-workouts-grid').querySelectorAll('[data-saved-id]').forEach(card =>
-    card.addEventListener('click', () => showSavedDetail(card.dataset.savedId))
+  document.getElementById('my-workouts-grid').querySelectorAll('.saved-card').forEach(card =>
+    card.addEventListener('click', e => {
+      if (e.target.closest('.saved-delete-btn')) return;
+      showSavedDetail(card.dataset.savedId);
+    })
   );
-  document.getElementById('my-workouts-grid').querySelectorAll('[data-delete-id]').forEach(btn =>
+  document.getElementById('my-workouts-grid').querySelectorAll('.saved-delete-btn').forEach(btn =>
     btn.addEventListener('click', e => { e.stopPropagation(); deleteSavedWorkout(btn.dataset.deleteId); })
   );
 }
