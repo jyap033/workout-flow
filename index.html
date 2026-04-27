@@ -817,7 +817,6 @@
       <input type="range" id="volume" min="0" max="100" value="70" title="Volume">
     </div>
     <button class="btn-sm" id="btn-test">Test Sound</button>
-    <button class="btn-sm" id="btn-config-toggle">⚙ Config</button>
   </div>
 </header>
 
@@ -834,7 +833,10 @@
       </div>
     </div>
     <button class="btn btn-primary" id="btn-ready-start">Start Workout</button>
-    <button class="btn-change" id="btn-change-workout">Change Workout</button>
+    <div style="display:flex;gap:1rem">
+      <button class="btn-change" id="btn-change-workout">Change Workout</button>
+      <button class="btn-change" id="btn-edit-config">Edit Timing</button>
+    </div>
   </div>
 
   <!-- Template picker -->
@@ -1010,8 +1012,17 @@ function tone(freq, dur, offset = 0, amp = 0.35, shape = 'sine') {
 }
 
 const SFX = {
-  beep:      () => tone(880, 0.12, 0, 0.4),
-  beepFinal: () => tone(1320, 0.18, 0, 0.5),
+  beep:         () => tone(880, 0.12, 0, 0.4),
+  beepFinal:    () => tone(1320, 0.18, 0, 0.5),
+  beepSet: () => {
+    tone(1047, 0.07, 0.00, 0.32);
+    tone(1047, 0.07, 0.11, 0.32);
+  },
+  beepSetFinal: () => {
+    tone(1047, 0.07, 0.00, 0.35);
+    tone(1047, 0.07, 0.11, 0.35);
+    tone(1319, 0.14, 0.22, 0.55);
+  },
   set: () => {
     tone(523, 0.12, 0.00, 0.3);
     tone(659, 0.12, 0.14, 0.3);
@@ -1184,7 +1195,6 @@ function showDetailView(id) {
   idleView = 'detail';
   hideAllViews();
   document.getElementById('detail-view').classList.remove('hidden');
-  document.getElementById('btn-config-toggle').textContent = '⚙ Config';
 }
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -1264,7 +1274,10 @@ function saveWorkoutToMenu() {
 }
 
 function deleteSavedWorkout(id) {
-  writeSavedWorkouts(loadSavedWorkouts().filter(w => w.id !== id));
+  const w = loadSavedWorkouts().find(x => x.id === id);
+  const name = w ? `"${w.name}"` : 'this workout';
+  if (!confirm(`Delete ${name}?`)) return;
+  writeSavedWorkouts(loadSavedWorkouts().filter(x => x.id !== id));
   renderSavedWorkouts();
   if (currentDetailId === id) showTemplateView();
 }
@@ -1412,7 +1425,6 @@ function showSavedDetail(id) {
   idleView = 'detail';
   hideAllViews();
   document.getElementById('detail-view').classList.remove('hidden');
-  document.getElementById('btn-config-toggle').textContent = '⚙ Config';
 }
 
 const PRESET_EXERCISES = [
@@ -1660,9 +1672,13 @@ function tick(ts) {
   if (ceiled !== T.lastTick) {
     T.lastTick = ceiled;
     if (T.cfg.countdownN > 0 && ceiled <= T.cfg.countdownN) {
-      // Final-N-seconds countdown
+      // Final-N-seconds countdown — set phases use a distinct double-tap
       T.lastBeep = ceiled;
-      ceiled === 1 ? SFX.beepFinal() : SFX.beep();
+      if (phase.type === 'set') {
+        ceiled === 1 ? SFX.beepSetFinal() : SFX.beepSet();
+      } else {
+        ceiled === 1 ? SFX.beepFinal() : SFX.beep();
+      }
       const el = document.getElementById('time-display');
       el.classList.remove('flash');
       void el.offsetWidth;
@@ -1918,7 +1934,6 @@ function showReadyView() {
   idleView = 'ready';
   hideAllViews();
   document.getElementById('ready-view').classList.remove('hidden');
-  document.getElementById('btn-config-toggle').textContent = '⚙ Edit';
   renderReadyCard();
 }
 
@@ -1926,7 +1941,6 @@ function showTemplateView() {
   idleView = 'templates';
   hideAllViews();
   document.getElementById('template-picker').classList.remove('hidden');
-  document.getElementById('btn-config-toggle').textContent = '⚙ Config';
 }
 
 function showConfigView() {
@@ -1935,7 +1949,6 @@ function showConfigView() {
   document.getElementById('config-panel').classList.remove('hidden');
   document.getElementById('btn-start').classList.remove('hidden');
   setStartLabel('Start');
-  document.getElementById('btn-config-toggle').textContent = '← Back';
   renderConfigPreview();
 }
 
@@ -1943,7 +1956,6 @@ function showTimerView() {
   hideAllViews(false);
   document.getElementById('timer-display').classList.remove('hidden');
   document.getElementById('btn-start').classList.remove('hidden');
-  document.getElementById('btn-config-toggle').textContent = '⚙ Config';
 }
 
 function setStartLabel(label) {
@@ -2033,32 +2045,17 @@ document.getElementById('file-import').addEventListener('change', e => {
 
 document.getElementById('btn-ready-start').addEventListener('click', startTimer);
 document.getElementById('btn-change-workout').addEventListener('click', showTemplateView);
+document.getElementById('btn-edit-config').addEventListener('click', () => {
+  currentEditWorkoutId = null;
+  document.getElementById('cfg-workout-name').value = '';
+  updateSaveButton();
+  showConfigView();
+});
 
 document.getElementById('btn-test').addEventListener('click', () => {
   SFX.set();
   setTimeout(SFX.beep, 600);
   setTimeout(SFX.beepFinal, 900);
-});
-
-document.getElementById('btn-config-toggle').addEventListener('click', () => {
-  if (T.status === 'idle') {
-    if (idleView === 'config') {
-      if (currentDetailId) {
-        const builtIn = TEMPLATES.find(t => t.id === currentDetailId);
-        if (builtIn) showDetailView(currentDetailId);
-        else showSavedDetail(currentDetailId);
-      } else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
-      else showTemplateView();
-    } else {
-      // Generic config from header — not tied to a saved workout
-      currentEditWorkoutId = null;
-      document.getElementById('cfg-workout-name').value = '';
-      updateSaveButton();
-      showConfigView();
-    }
-  } else {
-    resetTimer();
-  }
 });
 
 // Rebuild set names and update preview when set count changes
