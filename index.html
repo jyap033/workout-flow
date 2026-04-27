@@ -662,7 +662,90 @@
     }
     .cfg-preview-pill-dur { opacity: 0.6; font-size: 0.65rem; }
 
-    /* ── Ready view phase bar ── */
+    /* ── My Workouts section ── */
+    .my-workouts-section { margin-top: 1.625rem; }
+    .my-workouts-section > h2 {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+      text-align: center;
+    }
+    .saved-card-wrapper { position: relative; }
+    .saved-delete-btn {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      width: 1.375rem;
+      height: 1.375rem;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 0.62rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
+      line-height: 1;
+    }
+    .saved-card-wrapper:hover .saved-delete-btn { opacity: 1; }
+    .saved-delete-btn:hover { background: #ef4444; border-color: #ef4444; color: #fff; }
+
+    /* ── Config save section ── */
+    .cfg-save-section {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .cfg-save-hdr {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .cfg-save-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .cfg-save-row .cfg-field { flex: 1; }
+    .cfg-save-row .btn-save-action {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-family: inherit;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .cfg-save-row .btn-save-action:hover { background: var(--border); }
+    .cfg-save-row .btn-save-action.is-update {
+      background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+      color: var(--accent);
+    }
+    .cfg-save-row .btn-save-action.is-update:hover {
+      background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+    }
+    .cfg-save-feedback {
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-top: 0.4rem;
+      min-height: 1.1em;
+    }
     .ready-phase-bar {
       width: 100%;
       margin-top: 0.25rem;
@@ -713,6 +796,10 @@
   <div class="template-picker" id="template-picker">
     <h2>Choose a Workout</h2>
     <div class="template-grid" id="template-grid"></div>
+    <div class="my-workouts-section hidden" id="my-workouts-section">
+      <h2>My Workouts</h2>
+      <div class="template-grid" id="my-workouts-grid"></div>
+    </div>
   </div>
 
   <!-- Workout detail view -->
@@ -787,9 +874,19 @@
       </label>
     </div>
     <div class="set-names-wrap hidden" id="set-names-wrap"></div>
+    <div class="cfg-save-section">
+      <div class="cfg-save-hdr">Save to My Workouts</div>
+      <div class="cfg-save-row">
+        <div class="cfg-field">
+          <input type="text" id="cfg-workout-name" placeholder="Workout name…" maxlength="40" autocomplete="off">
+        </div>
+        <button class="btn-save-action" id="btn-save-workout">Save</button>
+      </div>
+      <div class="cfg-save-feedback" id="cfg-save-feedback"></div>
+    </div>
     <p class="cfg-hint">
-      Config is saved automatically. Set a duration to 0 to skip that phase.<br>
-      Rest is inserted between each set (not before set 1 or after the last set).
+      Timing settings are auto-saved. Set any duration to 0 to skip that phase.<br>
+      Rest is inserted between sets (not before set 1 or after the last).
     </p>
   </div>
 
@@ -1019,6 +1116,8 @@ function showDetailView(id) {
     `<div class="detail-stat"><span class="detail-stat-val">${s.val}</span><span class="detail-stat-lbl">${s.lbl}</span></div>`
   ).join('');
 
+  document.getElementById('btn-detail-customize').textContent = 'Customize';
+
   idleView = 'detail';
   hideAllViews();
   document.getElementById('detail-view').classList.remove('hidden');
@@ -1029,6 +1128,153 @@ function showDetailView(id) {
 
 const STORAGE_KEY = 'wt_config_v1';
 const USER_EX_KEY = 'wt_exercises_v1';
+const SAVED_KEY   = 'wt_saved_workouts_v1';
+
+let currentEditWorkoutId = null;
+
+function loadSavedWorkouts() {
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY)) || []; } catch { return []; }
+}
+
+function writeSavedWorkouts(list) {
+  try { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); } catch {}
+}
+
+function applyWorkoutToForm(w) {
+  const c = w.config;
+  document.getElementById('cfg-warmup').value      = c.warmup      ?? 0;
+  document.getElementById('cfg-sets').value         = c.sets        ?? 1;
+  document.getElementById('cfg-set-duration').value = c.setDuration ?? 30;
+  document.getElementById('cfg-rest').value         = c.rest        ?? 0;
+  document.getElementById('cfg-cooldown').value     = c.cooldown    ?? 0;
+  document.getElementById('cfg-countdown').value    = c.countdownN  ?? 3;
+  const tick = document.getElementById('cfg-tick');
+  if (tick) tick.checked = c.tickEvery ?? false;
+  buildSetNameInputs(c.sets ?? 1, c.setNames ?? []);
+  saveConfig();
+}
+
+function updateSaveButton() {
+  const btn = document.getElementById('btn-save-workout');
+  if (currentEditWorkoutId) {
+    btn.textContent = 'Update';
+    btn.classList.add('is-update');
+  } else {
+    btn.textContent = 'Save';
+    btn.classList.remove('is-update');
+  }
+}
+
+function setSaveFeedback(msg, isError = false) {
+  const el = document.getElementById('cfg-save-feedback');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#ef4444' : 'var(--accent)';
+  if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 2500);
+}
+
+function saveWorkoutToMenu() {
+  const name = document.getElementById('cfg-workout-name').value.trim();
+  if (!name) {
+    document.getElementById('cfg-workout-name').focus();
+    setSaveFeedback('Enter a name first.', true);
+    return;
+  }
+  const cfg = readConfig();
+  const list = loadSavedWorkouts();
+  if (currentEditWorkoutId) {
+    const idx = list.findIndex(w => w.id === currentEditWorkoutId);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], name, config: cfg };
+      writeSavedWorkouts(list);
+      renderSavedWorkouts();
+      setSaveFeedback(`"${name}" updated.`);
+      return;
+    }
+  }
+  list.push({ id: `u${Date.now()}`, name, config: cfg });
+  writeSavedWorkouts(list);
+  currentEditWorkoutId = list[list.length - 1].id;
+  updateSaveButton();
+  renderSavedWorkouts();
+  setSaveFeedback(`"${name}" saved to My Workouts.`);
+}
+
+function deleteSavedWorkout(id) {
+  writeSavedWorkouts(loadSavedWorkouts().filter(w => w.id !== id));
+  renderSavedWorkouts();
+  if (currentDetailId === id) showTemplateView();
+}
+
+function renderSavedWorkouts() {
+  const list = loadSavedWorkouts();
+  const section = document.getElementById('my-workouts-section');
+  if (!list.length) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+  document.getElementById('my-workouts-grid').innerHTML = list.map(w => {
+    const total = calcTplTotal(w.config);
+    const safeId = w.id.replace(/"/g, '');
+    return `<div class="saved-card-wrapper">` +
+      `<button class="template-card" data-saved-id="${safeId}">` +
+        `<span class="tc-icon">⭐</span>` +
+        `<span class="tc-name">${w.name.replace(/</g, '&lt;')}</span>` +
+        `<span class="tc-time">${fmtDur(total)}</span>` +
+      `</button>` +
+      `<button class="saved-delete-btn" data-delete-id="${safeId}" title="Delete">✕</button>` +
+    `</div>`;
+  }).join('');
+  document.getElementById('my-workouts-grid').querySelectorAll('[data-saved-id]').forEach(card =>
+    card.addEventListener('click', () => showSavedDetail(card.dataset.savedId))
+  );
+  document.getElementById('my-workouts-grid').querySelectorAll('[data-delete-id]').forEach(btn =>
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteSavedWorkout(btn.dataset.deleteId); })
+  );
+}
+
+function showSavedDetail(id) {
+  const w = loadSavedWorkouts().find(x => x.id === id);
+  if (!w) return;
+  currentDetailId = id;
+
+  document.getElementById('detail-icon').textContent = '⭐';
+  document.getElementById('detail-name').textContent = w.name;
+
+  const cfg = w.config;
+  const desc = [];
+  if (cfg.warmup > 0) desc.push(`${fmtDur(cfg.warmup)} warmup`);
+  desc.push(`${cfg.sets} set${cfg.sets !== 1 ? 's' : ''} · ${fmtDur(cfg.setDuration)} work`);
+  if (cfg.rest > 0 && cfg.sets > 1) desc.push(`${fmtDur(cfg.rest)} rest`);
+  if (cfg.cooldown > 0) desc.push(`${fmtDur(cfg.cooldown)} cooldown`);
+  document.getElementById('detail-desc').textContent = desc.join(' · ');
+
+  const total = calcTplTotal(cfg);
+  document.getElementById('detail-total').textContent = fmtDur(total);
+
+  const phases = buildPhases({ ...cfg, setNames: w.config.setNames || [], tickEvery: false });
+  renderPhaseBar(phases, total, 'detail-phase-bar');
+  document.getElementById('detail-tl-pills').innerHTML = phases.map(p =>
+    `<div class="tl-preview-pill" style="border-color:${PHASE_COLORS[p.type]};color:${PHASE_COLORS[p.type]}">` +
+      p.label + `<span class="tl-pill-dur">${fmtDur(p.duration)}</span>` +
+    `</div>`
+  ).join('');
+
+  const stats = [];
+  if (cfg.warmup > 0) stats.push({ val: fmtDur(cfg.warmup), lbl: 'Warmup' });
+  stats.push({ val: cfg.sets, lbl: 'Sets' });
+  stats.push({ val: fmtDur(cfg.setDuration), lbl: 'Work' });
+  if (cfg.rest > 0) stats.push({ val: fmtDur(cfg.rest), lbl: 'Rest' });
+  if (cfg.cooldown > 0) stats.push({ val: fmtDur(cfg.cooldown), lbl: 'Cooldown' });
+  document.getElementById('detail-stats').innerHTML = stats.map(s =>
+    `<div class="detail-stat"><span class="detail-stat-val">${s.val}</span><span class="detail-stat-lbl">${s.lbl}</span></div>`
+  ).join('');
+
+  document.getElementById('btn-detail-customize').textContent = 'Edit';
+
+  idleView = 'detail';
+  hideAllViews();
+  document.getElementById('detail-view').classList.remove('hidden');
+  document.getElementById('btn-config-toggle').textContent = '⚙ Config';
+}
 
 const PRESET_EXERCISES = [
   'Push-ups', 'Pull-ups', 'Squats', 'Lunges', 'Burpees', 'Plank',
@@ -1577,15 +1823,36 @@ document.getElementById('btn-detail-back').addEventListener('click', showTemplat
 
 document.getElementById('btn-detail-start').addEventListener('click', () => {
   if (!currentDetailId) return;
-  applyTemplateToForm(currentDetailId);
+  const builtIn = TEMPLATES.find(t => t.id === currentDetailId);
+  if (builtIn) {
+    applyTemplateToForm(currentDetailId);
+  } else {
+    const w = loadSavedWorkouts().find(x => x.id === currentDetailId);
+    if (w) applyWorkoutToForm(w);
+  }
   startTimer();
 });
 
 document.getElementById('btn-detail-customize').addEventListener('click', () => {
   if (!currentDetailId) return;
-  applyTemplateToForm(currentDetailId);
+  const builtIn = TEMPLATES.find(t => t.id === currentDetailId);
+  if (builtIn) {
+    applyTemplateToForm(currentDetailId);
+    document.getElementById('cfg-workout-name').value = builtIn.name;
+    currentEditWorkoutId = null;
+  } else {
+    const w = loadSavedWorkouts().find(x => x.id === currentDetailId);
+    if (w) {
+      applyWorkoutToForm(w);
+      document.getElementById('cfg-workout-name').value = w.name;
+      currentEditWorkoutId = w.id;
+    }
+  }
+  updateSaveButton();
   showConfigView();
 });
+
+document.getElementById('btn-save-workout').addEventListener('click', saveWorkoutToMenu);
 
 document.getElementById('btn-ready-start').addEventListener('click', startTimer);
 document.getElementById('btn-change-workout').addEventListener('click', showTemplateView);
@@ -1599,10 +1866,17 @@ document.getElementById('btn-test').addEventListener('click', () => {
 document.getElementById('btn-config-toggle').addEventListener('click', () => {
   if (T.status === 'idle') {
     if (idleView === 'config') {
-      if (currentDetailId) showDetailView(currentDetailId);
-      else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+      if (currentDetailId) {
+        const builtIn = TEMPLATES.find(t => t.id === currentDetailId);
+        if (builtIn) showDetailView(currentDetailId);
+        else showSavedDetail(currentDetailId);
+      } else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
       else showTemplateView();
     } else {
+      // Generic config from header — not tied to a saved workout
+      currentEditWorkoutId = null;
+      document.getElementById('cfg-workout-name').value = '';
+      updateSaveButton();
       showConfigView();
     }
   } else {
@@ -1645,6 +1919,8 @@ document.addEventListener('keydown', (e) => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 loadConfig();
 renderTemplates();
+renderSavedWorkouts();
+updateSaveButton();
 if (localStorage.getItem(STORAGE_KEY)) showReadyView();
 else showTemplateView();
 </script>
