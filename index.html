@@ -613,24 +613,54 @@
     }
     .tl-pill-dur { opacity: 0.6; font-size: 0.67rem; }
 
-    /* ── Config Preview bar ── */
+    /* ── Config Preview ── */
     .cfg-preview {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem;
       background: var(--bg);
       border-radius: 0.5rem;
       border: 1px solid var(--border);
+      padding: 0.875rem;
       margin-bottom: 1.125rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
     }
-    .cfg-preview-bar { flex: 1; height: 6px; }
-    .cfg-preview-dur {
-      font-size: 0.75rem;
-      color: var(--accent);
+    .cfg-preview-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .cfg-preview-label {
+      font-size: 0.65rem;
       font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cfg-preview-dur {
+      font-size: 0.875rem;
+      color: var(--accent);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
+    .cfg-preview-bar { height: 8px; }
+    .cfg-preview-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+    .cfg-preview-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.175rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    .cfg-preview-pill-dur { opacity: 0.6; font-size: 0.65rem; }
 
     /* ── Ready view phase bar ── */
     .ready-phase-bar {
@@ -717,8 +747,12 @@
       <button class="btn-sm" id="btn-back-templates">← Back</button>
     </div>
     <div class="cfg-preview" id="cfg-preview">
+      <div class="cfg-preview-header">
+        <span class="cfg-preview-label">Preview</span>
+        <span class="cfg-preview-dur" id="cfg-preview-dur">—</span>
+      </div>
       <div class="phase-bar cfg-preview-bar" id="cfg-phase-bar"></div>
-      <span class="cfg-preview-dur" id="cfg-preview-dur">—</span>
+      <div class="cfg-preview-pills" id="cfg-preview-pills"></div>
     </div>
     <div class="config-grid">
       <div class="cfg-field">
@@ -1428,12 +1462,23 @@ function renderConfigPreview() {
   const cfg = readConfig();
   const phases = buildPhases({ ...cfg, setNames: [] });
   const total = phases.reduce((s, p) => s + p.duration, 0);
-  const bar = document.getElementById('cfg-phase-bar');
   const dur = document.getElementById('cfg-preview-dur');
-  if (!bar || !dur) return;
-  if (total === 0) { bar.innerHTML = ''; dur.textContent = '—'; return; }
+  const pills = document.getElementById('cfg-preview-pills');
+  if (!dur || !pills) return;
+  if (total === 0) {
+    document.getElementById('cfg-phase-bar').innerHTML = '';
+    dur.textContent = '—';
+    pills.innerHTML = '';
+    return;
+  }
   renderPhaseBar(phases, total, 'cfg-phase-bar');
   dur.textContent = fmtDur(total);
+  pills.innerHTML = phases.map(p =>
+    `<div class="cfg-preview-pill" style="border-color:${PHASE_COLORS[p.type]};color:${PHASE_COLORS[p.type]}">` +
+      p.label +
+      `<span class="cfg-preview-pill-dur">${fmtDur(p.duration)}</span>` +
+    `</div>`
+  ).join('');
 }
 
 function renderReadyCard() {
@@ -1572,10 +1617,11 @@ document.getElementById('cfg-sets').addEventListener('input', () => {
   renderConfigPreview();
 });
 
-// Auto-save and update preview on number input changes
-document.querySelectorAll('.config-panel input[type=number]').forEach(el =>
-  el.addEventListener('change', () => { saveConfig(); renderConfigPreview(); })
-);
+// Update preview in real-time while typing; save on commit (blur/enter)
+document.querySelectorAll('.config-panel input[type=number]').forEach(el => {
+  el.addEventListener('input', renderConfigPreview);
+  el.addEventListener('change', saveConfig);
+});
 document.getElementById('cfg-tick').addEventListener('change', saveConfig);
 
 document.addEventListener('keydown', (e) => {
