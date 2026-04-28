@@ -578,6 +578,20 @@
       border: 1px solid var(--border);
     }
     .btn-ghost:hover { background: var(--border); }
+    .btn-time-adj {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-time-adj:hover { background: var(--border); color: var(--text); border-color: var(--text); }
 
     .shortcuts {
       font-size: 0.72rem;
@@ -1092,13 +1106,16 @@
 
   <!-- Controls -->
   <div class="controls">
+    <button class="btn-time-adj hidden" id="btn-minus10">−10s</button>
     <button class="btn btn-primary hidden" id="btn-start">Start</button>
     <button class="btn btn-ghost hidden" id="btn-skip">Skip Phase</button>
+    <button class="btn-time-adj hidden" id="btn-plus10">+10s</button>
     <button class="btn btn-ghost hidden" id="btn-reset">Reset</button>
   </div>
 
   <div class="shortcuts">
     <kbd>Space</kbd> Start / Pause &nbsp;·&nbsp;
+    <kbd>←</kbd><kbd>→</kbd> −/+10s &nbsp;·&nbsp;
     <kbd>S</kbd> Skip Phase &nbsp;·&nbsp;
     <kbd>R</kbd> Reset
   </div>
@@ -1970,6 +1987,23 @@ function skipPhase() {
   setStartLabel('Pause');
 }
 
+function adjustPhaseTime(delta) {
+  if (T.status !== 'running' && T.status !== 'paused') return;
+  const phase = T.phases[T.idx];
+  if (T.status === 'paused') {
+    T.pausedLeft = Math.min(phase.duration, Math.max(1, T.pausedLeft + delta));
+    updateTimerUI(T.pausedLeft, phase);
+  } else {
+    const now = performance.now();
+    const elapsed = (now - T.phaseStartTs) / 1000;
+    const newElapsed = Math.min(phase.duration - 1, Math.max(0, elapsed - delta));
+    T.phaseStartTs = now - newElapsed * 1000;
+    T.lastBeep = -1;
+    T.lastTick = -1;
+    T.lastInterval = -1;
+  }
+}
+
 function resetTimer() {
   cancelAnimationFrame(T.rafId);
   Object.assign(T, {
@@ -2039,6 +2073,8 @@ function renderDone() {
   document.getElementById('done-banner').classList.remove('hidden');
   document.getElementById('btn-start').classList.add('hidden');
   document.getElementById('btn-skip').classList.add('hidden');
+  document.getElementById('btn-minus10').classList.add('hidden');
+  document.getElementById('btn-plus10').classList.add('hidden');
   document.getElementById('btn-reset').classList.remove('hidden');
   document.body.dataset.phase = 'done';
   document.querySelectorAll('.tl-item').forEach(el => {
@@ -2062,6 +2098,8 @@ function hideAllViews(clearTimeline = true) {
   if (clearTimeline) document.getElementById('timeline').innerHTML = '';
   document.getElementById('btn-start').classList.add('hidden');
   document.getElementById('btn-skip').classList.add('hidden');
+  document.getElementById('btn-minus10').classList.add('hidden');
+  document.getElementById('btn-plus10').classList.add('hidden');
   document.getElementById('btn-reset').classList.add('hidden');
   document.body.dataset.phase = 'set';
 }
@@ -2163,6 +2201,8 @@ function setStartLabel(label) {
 function showSkipReset() {
   document.getElementById('btn-skip').classList.remove('hidden');
   document.getElementById('btn-reset').classList.remove('hidden');
+  document.getElementById('btn-minus10').classList.remove('hidden');
+  document.getElementById('btn-plus10').classList.remove('hidden');
 }
 
 // ─── Event Wiring ─────────────────────────────────────────────────────────────
@@ -2175,6 +2215,8 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
 document.getElementById('btn-skip').addEventListener('click', skipPhase);
 document.getElementById('btn-reset').addEventListener('click', resetTimer);
+document.getElementById('btn-minus10').addEventListener('click', () => adjustPhaseTime(-10));
+document.getElementById('btn-plus10').addEventListener('click',  () => adjustPhaseTime(10));
 
 document.getElementById('btn-back-templates').addEventListener('click', () => {
   if (configOrigin === 'ready') showReadyView();
@@ -2307,6 +2349,12 @@ document.addEventListener('keydown', (e) => {
     } else {
       document.getElementById('btn-start').click();
     }
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    adjustPhaseTime(-10);
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    adjustPhaseTime(10);
   } else if (e.key === 's' || e.key === 'S') {
     if (T.status === 'running' || T.status === 'paused') skipPhase();
   } else if (e.key === 'r' || e.key === 'R') {
