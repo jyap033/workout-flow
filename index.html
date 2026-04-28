@@ -818,6 +818,7 @@
       text-underline-offset: 3px;
     }
     .btn-link-sm:hover { color: var(--text); }
+    .picker-back-row { margin-bottom: 0.75rem; }
     .import-feedback {
       font-size: 0.75rem;
       min-height: 1.1em;
@@ -960,6 +961,9 @@
 
   <!-- Template picker -->
   <div class="template-picker" id="template-picker">
+    <div class="picker-back-row hidden" id="template-picker-back-row">
+      <a href="#" class="btn-link-sm" id="btn-back-to-ready">← Back to current workout</a>
+    </div>
     <h2>Choose a Workout</h2>
     <div class="template-grid" id="template-grid"></div>
     <div class="my-workouts-section hidden" id="my-workouts-section">
@@ -1244,7 +1248,7 @@ function renderTemplates() {
       const id = card.dataset.id;
       const tpl = TEMPLATES.find(t => t.id === id);
       if (tpl && tpl.config) showDetailView(id);
-      else applyTemplateToForm(id), showConfigView();
+      else applyTemplateToForm(id), showConfigView('templates');
     })
   );
 }
@@ -1323,6 +1327,7 @@ const USER_EX_KEY = 'wt_exercises_v1';
 const SAVED_KEY   = 'wt_saved_workouts_v1';
 
 let currentEditWorkoutId = null;
+let configOrigin = 'templates';
 
 function loadSavedWorkouts() {
   try { return JSON.parse(localStorage.getItem(SAVED_KEY)) || []; } catch { return []; }
@@ -2128,14 +2133,19 @@ function showTemplateView() {
   idleView = 'templates';
   hideAllViews();
   document.getElementById('template-picker').classList.remove('hidden');
+  const backRow = document.getElementById('template-picker-back-row');
+  backRow.classList.toggle('hidden', !localStorage.getItem(STORAGE_KEY));
 }
 
-function showConfigView() {
+function showConfigView(origin) {
   idleView = 'config';
+  configOrigin = origin || 'templates';
   hideAllViews();
   document.getElementById('config-panel').classList.remove('hidden');
   document.getElementById('btn-start').classList.remove('hidden');
   setStartLabel('Start');
+  document.getElementById('btn-back-templates').textContent =
+    configOrigin === 'templates' ? '← All Workouts' : '← Back';
   renderConfigPreview();
 }
 
@@ -2166,8 +2176,8 @@ document.getElementById('btn-skip').addEventListener('click', skipPhase);
 document.getElementById('btn-reset').addEventListener('click', resetTimer);
 
 document.getElementById('btn-back-templates').addEventListener('click', () => {
-  if (currentDetailId) showDetailView(currentDetailId);
-  else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+  if (configOrigin === 'ready') showReadyView();
+  else if (configOrigin === 'detail' && currentDetailId) showDetailView(currentDetailId);
   else showTemplateView();
 });
 
@@ -2201,7 +2211,7 @@ document.getElementById('btn-detail-customize').addEventListener('click', () => 
     }
   }
   updateSaveButton();
-  showConfigView();
+  showConfigView('detail');
 });
 
 document.getElementById('btn-save-workout').addEventListener('click', saveWorkoutToMenu);
@@ -2232,11 +2242,12 @@ document.getElementById('file-import').addEventListener('change', e => {
 
 document.getElementById('btn-ready-start').addEventListener('click', startTimer);
 document.getElementById('btn-change-workout').addEventListener('click', showTemplateView);
+document.getElementById('btn-back-to-ready').addEventListener('click', (e) => { e.preventDefault(); showReadyView(); });
 document.getElementById('btn-edit-config').addEventListener('click', () => {
   currentEditWorkoutId = null;
   document.getElementById('cfg-workout-name').value = '';
   updateSaveButton();
-  showConfigView();
+  showConfigView('ready');
 });
 
 document.getElementById('btn-test').addEventListener('click', () => {
@@ -2271,12 +2282,12 @@ document.addEventListener('keydown', (e) => {
     if (T.status === 'idle') {
       if (idleView === 'detail') { showTemplateView(); return; }
       if (idleView === 'config') {
-        if (currentDetailId) showDetailView(currentDetailId);
-        else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+        if (configOrigin === 'ready') showReadyView();
+        else if (configOrigin === 'detail' && currentDetailId) showDetailView(currentDetailId);
         else showTemplateView();
         return;
       }
-      if (idleView === 'ready') { showTemplateView(); return; }
+      if (idleView === 'templates' && localStorage.getItem(STORAGE_KEY)) { showReadyView(); return; }
     }
   }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
