@@ -39,7 +39,8 @@
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    header h1 { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+    header h1 { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; cursor: pointer; }
+    header h1:hover { opacity: 0.75; }
 
     .header-controls { display: flex; align-items: center; gap: 0.75rem; }
 
@@ -2243,6 +2244,12 @@ document.getElementById('file-import').addEventListener('change', e => {
 document.getElementById('btn-ready-start').addEventListener('click', startTimer);
 document.getElementById('btn-change-workout').addEventListener('click', showTemplateView);
 document.getElementById('btn-back-to-ready').addEventListener('click', (e) => { e.preventDefault(); showReadyView(); });
+
+document.querySelector('header h1').addEventListener('click', () => {
+  if (T.status !== 'idle') return;
+  if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+  else showTemplateView();
+});
 document.getElementById('btn-edit-config').addEventListener('click', () => {
   currentEditWorkoutId = null;
   document.getElementById('cfg-workout-name').value = '';
