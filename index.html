@@ -2266,7 +2266,19 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && activePickerSetIdx >= 0) { closeExPicker(true); return; }
+  if (e.key === 'Escape') {
+    if (activePickerSetIdx >= 0) { closeExPicker(true); return; }
+    if (T.status === 'idle') {
+      if (idleView === 'detail') { showTemplateView(); return; }
+      if (idleView === 'config') {
+        if (currentDetailId) showDetailView(currentDetailId);
+        else if (localStorage.getItem(STORAGE_KEY)) showReadyView();
+        else showTemplateView();
+        return;
+      }
+      if (idleView === 'ready') { showTemplateView(); return; }
+    }
+  }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space') {
     e.preventDefault();
