@@ -268,26 +268,145 @@
     }
     .cfg-field select:focus { outline: none; border-color: var(--accent); }
     .cfg-field select option { background: #1c2128; color: var(--text); }
-    .sn-custom-row { display: flex; gap: 0.4rem; margin-top: 0.35rem; }
-    .sn-custom-row input { flex: 1; }
-    .btn-add-ex {
+
+    /* ── Set Exercises ── */
+    .set-names-wrap {
+      margin-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+    }
+    .set-names-wrap h3 {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.875rem;
+    }
+    .set-names-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .ex-picker-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 0.625rem;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      width: 100%;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .ex-picker-btn:hover { border-color: var(--accent); }
+    .ex-picker-btn.open {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 6%, var(--bg));
+    }
+    .ex-picker-btn-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ex-picker-btn-val.empty { color: var(--muted); font-style: italic; }
+    .ex-picker-btn-chev { color: var(--muted); font-size: 0.65rem; transition: transform 0.2s; flex-shrink: 0; }
+    .ex-picker-btn.open .ex-picker-btn-chev { transform: rotate(180deg); }
+
+    .ex-picker {
+      grid-column: 1 / -1;
+      margin-top: 0.25rem;
+      padding: 0.875rem;
+      background: var(--bg);
+      border: 1px solid var(--accent);
+      border-radius: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+    }
+    .ex-cat-row { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .ex-cat-tab {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .ex-cat-tab:hover { border-color: var(--accent); color: var(--text); }
+    .ex-cat-tab.active { background: var(--accent); border-color: var(--accent); color: #000; }
+    .ex-exercise-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.3rem;
+      max-height: 156px;
+      overflow-y: auto;
+    }
+    @media (max-width: 480px) { .ex-exercise-grid { grid-template-columns: repeat(2, 1fr); } }
+    .ex-ex-btn {
       background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 0.35rem 0.6rem;
-      border-radius: 0.5rem;
-      font-size: 0.75rem;
+      padding: 0.35rem 0.45rem;
+      border-radius: 0.375rem;
+      font-size: 0.7rem;
       cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
     }
-    .btn-add-ex:hover { background: var(--border); }
-    .cfg-tick-row {
-      margin-top: 1rem;
-      padding: 0.625rem 0.75rem;
-      background: var(--bg);
-      border-radius: 0.5rem;
+    .ex-ex-btn:hover {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    }
+    .ex-ex-btn.selected {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .ex-custom-row {
+      display: flex;
+      gap: 0.35rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .ex-custom-input {
+      flex: 1;
+      background: var(--surface);
       border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.375rem 0.6rem;
+      border-radius: 0.375rem;
+      font-size: 0.8rem;
+      font-family: inherit;
     }
+    .ex-custom-input::placeholder { color: var(--muted); opacity: 0.6; }
+    .ex-custom-input:focus { outline: none; border-color: var(--accent); }
+    .ex-custom-add {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.375rem 0.7rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .ex-custom-add:hover { background: var(--border); }
     .cfg-tick-label {
       display: flex;
       align-items: center;
@@ -996,12 +1115,17 @@ function showDetailView(id) {
 const STORAGE_KEY = 'wt_config_v1';
 const USER_EX_KEY = 'wt_exercises_v1';
 
-const PRESET_EXERCISES = [
-  'Push-ups', 'Pull-ups', 'Squats', 'Lunges', 'Burpees', 'Plank',
-  'Sit-ups', 'Crunches', 'Mountain Climbers', 'Jumping Jacks',
-  'Deadlifts', 'Bench Press', 'Rows', 'Shoulder Press', 'Box Jumps',
-  'Dips', 'Kettlebell Swings', 'Jump Rope', 'Sprints', 'Hip Thrusts',
+const EXERCISE_CATS = [
+  { id: 'common',       label: 'Common',       list: ['Push-ups','Squats','Lunges','Plank','Burpees','Jumping Jacks','Sit-ups','Pull-ups','Crunches','Mountain Climbers'] },
+  { id: 'calisthenics', label: 'Calisthenics', list: ['Pull-ups','Dips','Push-ups','Chin-ups','Pike Push-ups','Diamond Push-ups','Pistol Squat','Muscle-ups','L-sit','Handstand Hold','Ring Rows','Archer Push-ups'] },
+  { id: 'hiit',         label: 'HIIT',         list: ['Burpees','Mountain Climbers','High Knees','Jump Squat','Box Jumps','Star Jumps','Tuck Jumps','Skaters','Jump Rope','Squat Thrusts'] },
+  { id: 'strength',     label: 'Strength',     list: ['Deadlifts','Bench Press','Barbell Row','Shoulder Press','Hip Thrusts','Kettlebell Swings','Goblet Squat','Romanian Deadlift','Arnold Press','Farmer Walk'] },
+  { id: 'cardio',       label: 'Cardio',       list: ['Jump Rope','Sprints','High Knees','Jumping Jacks','Shadow Boxing','Step-ups','Lateral Shuffles','Butt Kicks','Stair Climbs'] },
+  { id: 'core',         label: 'Core',         list: ['Plank','Sit-ups','Crunches','Leg Raises','Russian Twists','Dead Bug','Hollow Body','Bicycle Crunches','V-ups','Flutter Kicks'] },
 ];
+const PRESET_EXERCISES = [...new Set(EXERCISE_CATS.flatMap(c => c.list))];
+let activePickerSetIdx = -1;
+let activePickerCat    = 'common';
 
 function loadUserExercises() {
   try { return JSON.parse(localStorage.getItem(USER_EX_KEY)) || []; } catch { return []; }
@@ -1020,88 +1144,151 @@ function buildSetNameInputs(count, initialValues = null) {
   const wrap = document.getElementById('set-names-wrap');
   if (count < 1) { wrap.classList.add('hidden'); wrap.innerHTML = ''; return; }
 
-  const existing = initialValues || Array.from(wrap.querySelectorAll('[data-set-idx]')).map(el => {
-    const sel = el.querySelector('.sn-select');
-    if (!sel) return '';
-    return sel.value === '__custom__' ? (el.querySelector('.sn-input')?.value.trim() || '') : sel.value;
-  });
+  const existing = initialValues || Array.from(wrap.querySelectorAll('.ex-picker-btn[data-set-idx]'))
+    .sort((a, b) => parseInt(a.dataset.setIdx) - parseInt(b.dataset.setIdx))
+    .map(btn => btn.dataset.value || '');
 
-  const exercises = allExercises();
-  let html = `<h3>Set Names <span class="unit">(optional)</span></h3><div class="set-names-grid">`;
+  let html = `<h3>Set Names <span class="unit">(optional)</span></h3><div class="set-names-grid" id="set-names-grid">`;
   for (let i = 0; i < count; i++) {
     const val = (existing[i] || '').trim();
-    const isKnown = val === '' || exercises.includes(val);
-    const selectVal = isKnown ? val : '__custom__';
-    const options =
-      `<option value="">— Pick Exercise —</option>` +
-      exercises.map(e =>
-        `<option value="${e.replace(/"/g, '&quot;')}"${e === val ? ' selected' : ''}>${e}</option>`
-      ).join('') +
-      `<option value="__custom__"${selectVal === '__custom__' ? ' selected' : ''}>✏ Custom...</option>`;
-    const customVal = selectVal === '__custom__' ? val.replace(/"/g, '&quot;') : '';
+    const isEmpty = val === '';
     html +=
       `<div class="cfg-field" data-set-idx="${i}">` +
         `<label>Set ${i + 1}</label>` +
-        `<select class="sn-select">${options}</select>` +
-        `<div class="sn-custom-row${selectVal !== '__custom__' ? ' hidden' : ''}">` +
-          `<input type="text" class="sn-input" placeholder="Exercise name…" maxlength="30" value="${customVal}">` +
-          `<button type="button" class="btn-add-ex">Add</button>` +
-        `</div>` +
+        `<button type="button" class="ex-picker-btn" data-set-idx="${i}" data-value="${val.replace(/"/g, '&quot;')}">` +
+          `<span class="ex-picker-btn-val${isEmpty ? ' empty' : ''}">${isEmpty ? 'Pick exercise…' : val}</span>` +
+          `<span class="ex-picker-btn-chev">▼</span>` +
+        `</button>` +
       `</div>`;
   }
   html += '</div>';
   wrap.innerHTML = html;
   wrap.classList.remove('hidden');
 
-  wrap.querySelectorAll('.sn-select').forEach(sel => {
-    sel.addEventListener('change', () => {
-      const row = sel.closest('[data-set-idx]');
-      const customRow = row.querySelector('.sn-custom-row');
-      if (sel.value === '__custom__') {
-        customRow.classList.remove('hidden');
-        row.querySelector('.sn-input').focus();
-      } else {
-        customRow.classList.add('hidden');
-      }
-      saveConfig();
+  wrap.querySelectorAll('.ex-picker-btn[data-set-idx]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.setIdx);
+      if (activePickerSetIdx === idx) { closeExPicker(); return; }
+      openExPicker(idx);
+    });
+  });
+}
+
+function openExPicker(idx) {
+  closeExPicker(false);
+  activePickerSetIdx = idx;
+
+  const grid = document.getElementById('set-names-grid');
+  const btn  = grid.querySelector(`.ex-picker-btn[data-set-idx="${idx}"]`);
+  if (!btn) return;
+  btn.classList.add('open');
+
+  const pickerEl = document.createElement('div');
+  pickerEl.className = 'ex-picker';
+  pickerEl.id = 'ex-picker-panel';
+  pickerEl.innerHTML = renderExPickerHTML(btn.dataset.value || '');
+
+  const field = btn.closest('.cfg-field');
+  field.after(pickerEl);
+
+  pickerEl.querySelectorAll('.ex-cat-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      activePickerCat = tab.dataset.cat;
+      renderExCatTabs(pickerEl, btn.dataset.value || '');
     });
   });
 
-  wrap.querySelectorAll('.btn-add-ex').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const row = btn.closest('[data-set-idx]');
-      const input = row.querySelector('.sn-input');
-      const name = input.value.trim();
-      if (!name) return;
-      const list = loadUserExercises();
-      if (!PRESET_EXERCISES.includes(name) && !list.includes(name)) {
-        list.push(name);
-        saveUserExercises(list);
-      }
-      const currentCount = wrap.querySelectorAll('[data-set-idx]').length;
-      buildSetNameInputs(currentCount);
-      const idx = row.dataset.setIdx;
-      const newRow = wrap.querySelector(`[data-set-idx="${idx}"]`);
-      if (newRow) {
-        const newSel = newRow.querySelector('.sn-select');
-        if (newSel) {
-          newSel.value = name;
-          newRow.querySelector('.sn-custom-row')?.classList.add('hidden');
-        }
-      }
-      saveConfig();
-    });
+  pickerEl.querySelectorAll('.ex-ex-btn').forEach(b => {
+    b.addEventListener('click', () => selectExercise(idx, b.dataset.ex));
   });
 
-  wrap.querySelectorAll('.sn-input').forEach(el => el.addEventListener('input', saveConfig));
+  const addBtn = pickerEl.querySelector('.ex-custom-add');
+  const addInput = pickerEl.querySelector('.ex-custom-input');
+  addBtn.addEventListener('click', () => addCustomExercise(idx, addInput));
+  addInput.addEventListener('keydown', e => { if (e.key === 'Enter') addCustomExercise(idx, addInput); });
+}
+
+function closeExPicker(save = true) {
+  const panel = document.getElementById('ex-picker-panel');
+  if (panel) panel.remove();
+  const grid = document.getElementById('set-names-grid');
+  grid?.querySelectorAll('.ex-picker-btn.open').forEach(b => b.classList.remove('open'));
+  if (save && activePickerSetIdx >= 0) saveConfig();
+  activePickerSetIdx = -1;
+}
+
+function renderExPickerHTML(currentVal) {
+  const catTabsHTML = EXERCISE_CATS.map(cat =>
+    `<button type="button" class="ex-cat-tab${cat.id === activePickerCat ? ' active' : ''}" data-cat="${cat.id}">${cat.label}</button>`
+  ).join('');
+
+  const userExercises = loadUserExercises();
+  const catList = activePickerCat === 'my'
+    ? userExercises
+    : (EXERCISE_CATS.find(c => c.id === activePickerCat)?.list || []);
+
+  const exBtns = catList.map(ex =>
+    `<button type="button" class="ex-ex-btn${ex === currentVal ? ' selected' : ''}" data-ex="${ex.replace(/"/g, '&quot;')}">${ex}</button>`
+  ).join('');
+
+  return `<div class="ex-cat-row">${catTabsHTML}</div>` +
+    `<div class="ex-exercise-grid">${exBtns}</div>` +
+    `<div class="ex-custom-row">` +
+      `<input type="text" class="ex-custom-input" placeholder="Custom exercise…" maxlength="30">` +
+      `<button type="button" class="ex-custom-add">Add</button>` +
+    `</div>`;
+}
+
+function renderExCatTabs(pickerEl, currentVal) {
+  pickerEl.querySelectorAll('.ex-cat-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.cat === activePickerCat);
+  });
+  renderExGrid(pickerEl, currentVal);
+}
+
+function renderExGrid(pickerEl, currentVal) {
+  const userExercises = loadUserExercises();
+  const catList = activePickerCat === 'my'
+    ? userExercises
+    : (EXERCISE_CATS.find(c => c.id === activePickerCat)?.list || []);
+
+  const gridEl = pickerEl.querySelector('.ex-exercise-grid');
+  gridEl.innerHTML = catList.map(ex =>
+    `<button type="button" class="ex-ex-btn${ex === currentVal ? ' selected' : ''}" data-ex="${ex.replace(/"/g, '&quot;')}">${ex}</button>`
+  ).join('');
+
+  gridEl.querySelectorAll('.ex-ex-btn').forEach(b => {
+    b.addEventListener('click', () => selectExercise(activePickerSetIdx, b.dataset.ex));
+  });
+}
+
+function selectExercise(idx, name) {
+  const grid = document.getElementById('set-names-grid');
+  const btn = grid?.querySelector(`.ex-picker-btn[data-set-idx="${idx}"]`);
+  if (!btn) return;
+  btn.dataset.value = name;
+  const valSpan = btn.querySelector('.ex-picker-btn-val');
+  valSpan.textContent = name;
+  valSpan.classList.remove('empty');
+  closeExPicker(true);
+}
+
+function addCustomExercise(idx, inputEl) {
+  const name = inputEl.value.trim();
+  if (!name) return;
+  const list = loadUserExercises();
+  if (!PRESET_EXERCISES.includes(name) && !list.includes(name)) {
+    list.push(name);
+    saveUserExercises(list);
+  }
+  selectExercise(idx, name);
 }
 
 function readConfig() {
-  const setNames = Array.from(document.querySelectorAll('[data-set-idx]')).map(el => {
-    const sel = el.querySelector('.sn-select');
-    if (!sel) return '';
-    return sel.value === '__custom__' ? (el.querySelector('.sn-input')?.value.trim() || '') : sel.value;
-  });
+  const setNames = Array.from(document.querySelectorAll('.ex-picker-btn[data-set-idx]'))
+    .sort((a, b) => parseInt(a.dataset.setIdx) - parseInt(b.dataset.setIdx))
+    .map(btn => btn.dataset.value || '');
   return {
     warmup:      Math.max(0, parseInt(document.getElementById('cfg-warmup').value)      || 0),
     sets:        Math.max(1, parseInt(document.getElementById('cfg-sets').value)         || 1),
@@ -1578,7 +1765,14 @@ document.querySelectorAll('.config-panel input[type=number]').forEach(el =>
 );
 document.getElementById('cfg-tick').addEventListener('change', saveConfig);
 
+document.addEventListener('click', (e) => {
+  if (activePickerSetIdx >= 0 && !e.target.closest('#ex-picker-panel') && !e.target.closest('.ex-picker-btn')) {
+    closeExPicker(true);
+  }
+});
+
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && activePickerSetIdx >= 0) { closeExPicker(true); return; }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space') {
     e.preventDefault();
