@@ -58,14 +58,18 @@
 
     /* ── Header ── */
     header {
-      position: relative;
-      z-index: 1;
+      position: sticky;
+      top: 0;
+      z-index: 10;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.875rem 1.5rem;
-      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
       flex-shrink: 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
     }
     header h1 {
       font-family: 'Bebas Neue', sans-serif;
@@ -145,7 +149,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-left: 4px solid var(--accent);
-      border-radius: 0.75rem;
+      border-radius: 0.875rem;
       padding: 1rem 0.875rem;
       cursor: pointer;
       text-align: left;
@@ -517,6 +521,18 @@
       line-height: 1.6;
     }
 
+    .cfg-section-hdr {
+      font-size: 0.63rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-top: 1.25rem;
+      margin-bottom: 0.875rem;
+    }
+
     /* ── Timer Display ── */
     .timer-display {
       width: 100%;
@@ -524,20 +540,21 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
 
     .phase-tag {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.25rem;
+      font-size: 2rem;
       font-weight: 400;
-      letter-spacing: 0.3em;
+      letter-spacing: 0.25em;
       color: var(--accent);
-      text-shadow: 0 0 24px color-mix(in srgb, var(--accent) 70%, transparent);
-      transition: color 0.4s ease, text-shadow 0.4s ease;
+      transition: color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
       line-height: 1;
-      min-height: 1em;
       text-align: center;
+      padding: 0.25rem 1.25rem;
+      border-radius: 0.5rem;
+      display: inline-block;
     }
 
     .set-info {
@@ -588,10 +605,14 @@
     }
 
     .next-up {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       color: var(--muted);
       min-height: 1.25em;
       letter-spacing: 0.05em;
+      padding: 0.3rem 0.875rem;
+      border-radius: 0.5rem;
+      background: color-mix(in srgb, var(--surface) 70%, transparent);
+      border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     }
 
     /* ── Timeline ── */
@@ -1146,6 +1167,7 @@
       <div class="phase-bar cfg-preview-bar" id="cfg-phase-bar"></div>
       <div class="cfg-preview-pills" id="cfg-preview-pills"></div>
     </div>
+    <div class="cfg-section-hdr" style="margin-top:0">Timing</div>
     <div class="config-grid">
       <div class="cfg-field">
         <label>Warmup <span class="unit">(seconds, 0 = skip)</span></label>
@@ -1172,6 +1194,7 @@
         <input type="number" id="cfg-countdown" min="0" max="60" value="10">
       </div>
     </div>
+    <div class="cfg-section-hdr">Sound &amp; Feedback</div>
     <div class="cfg-tick-row">
       <label class="cfg-tick-label">
         <input type="checkbox" id="cfg-tick">
@@ -1221,7 +1244,7 @@
     <button class="btn btn-ghost hidden" id="btn-reset">Reset</button>
   </div>
 
-  <div class="shortcuts">
+  <div class="shortcuts hidden">
     <kbd>Space</kbd> Start / Pause &nbsp;·&nbsp;
     <kbd>←</kbd><kbd>→</kbd> −/+10s &nbsp;·&nbsp;
     <kbd>S</kbd> Skip Phase &nbsp;·&nbsp;
@@ -2135,6 +2158,8 @@ function updateTimerUI(left, phase) {
   document.getElementById('phase-tag').style.color = color;
   document.getElementById('phase-tag').style.background =
     `color-mix(in srgb, ${color} 15%, transparent)`;
+  document.getElementById('phase-tag').style.boxShadow =
+    `0 0 0 1px color-mix(in srgb, ${color} 25%, transparent), 0 0 14px color-mix(in srgb, ${color} 18%, transparent)`;
   document.body.dataset.phase = phase.type;
 
   if (phase.type === 'set' && phase.totalSets > 1) {
@@ -2209,6 +2234,7 @@ function hideAllViews(clearTimeline = true) {
   document.getElementById('btn-minus10').classList.add('hidden');
   document.getElementById('btn-plus10').classList.add('hidden');
   document.getElementById('btn-reset').classList.add('hidden');
+  document.querySelector('.shortcuts').classList.add('hidden');
   document.body.dataset.phase = 'set';
 }
 
@@ -2274,6 +2300,7 @@ function showReadyView() {
   hideAllViews();
   document.getElementById('ready-view').classList.remove('hidden');
   renderReadyCard();
+  document.querySelector('.shortcuts').classList.remove('hidden');
 }
 
 function showTemplateView() {
@@ -2300,6 +2327,7 @@ function showTimerView() {
   hideAllViews(false);
   document.getElementById('timer-display').classList.remove('hidden');
   document.getElementById('btn-start').classList.remove('hidden');
+  document.querySelector('.shortcuts').classList.remove('hidden');
 }
 
 function setStartLabel(label) {
