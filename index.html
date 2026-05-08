@@ -615,6 +615,34 @@
       border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     }
 
+    /* ── Next Exercise (shown during rest) ── */
+    .next-exercise {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.75rem 2rem;
+      border-radius: 0.625rem;
+      border: 1px solid;
+    }
+    .next-ex-lbl {
+      font-size: 0.63rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .next-ex-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.08em;
+      line-height: 1;
+    }
+    .next-ex-dur {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
     /* ── Timeline ── */
     .timeline {
       display: flex;
@@ -1223,6 +1251,11 @@
     <div class="phase-tag" id="phase-tag">Warmup</div>
     <div class="set-info" id="set-info"></div>
     <div class="time-display" id="time-display">00:00</div>
+    <div class="next-exercise hidden" id="next-exercise">
+      <span class="next-ex-lbl">Get Ready</span>
+      <span class="next-ex-name" id="next-ex-name"></span>
+      <span class="next-ex-dur" id="next-ex-dur"></span>
+    </div>
     <div class="progress-wrap">
       <div class="progress-fill" id="progress-fill" style="width:100%"></div>
     </div>
@@ -2176,6 +2209,20 @@ function updateTimerUI(left, phase) {
     document.getElementById('next-up').textContent = 'Final phase';
   }
 
+  const nextExEl = document.getElementById('next-exercise');
+  if (phase.type === 'rest' && nextPhase) {
+    const nc = PHASE_COLORS[nextPhase.type] || PHASE_COLORS.set;
+    document.getElementById('next-ex-name').textContent = nextPhase.label;
+    document.getElementById('next-ex-dur').textContent = fmtDur(nextPhase.duration);
+    nextExEl.style.borderColor = `color-mix(in srgb, ${nc} 30%, transparent)`;
+    nextExEl.style.background = `color-mix(in srgb, ${nc} 8%, transparent)`;
+    nextExEl.querySelector('.next-ex-lbl').style.color = nc;
+    nextExEl.querySelector('.next-ex-name').style.color = nc;
+    nextExEl.classList.remove('hidden');
+  } else {
+    nextExEl.classList.add('hidden');
+  }
+
   document.querySelectorAll('.tl-item').forEach((el, i) => {
     el.classList.remove('active', 'past');
     el.style.background = '';
@@ -2203,6 +2250,7 @@ function renderDone() {
   document.getElementById('time-display').textContent = '00:00';
   document.getElementById('progress-fill').style.width = '0%';
   document.getElementById('next-up').textContent = '';
+  document.getElementById('next-exercise').classList.add('hidden');
   document.getElementById('done-banner').classList.remove('hidden');
   document.getElementById('btn-start').classList.add('hidden');
   document.getElementById('btn-skip').classList.add('hidden');
