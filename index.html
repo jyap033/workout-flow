@@ -615,6 +615,14 @@
       border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     }
 
+    .elapsed-display {
+      font-size: 0.75rem;
+      color: color-mix(in srgb, var(--muted) 60%, transparent);
+      letter-spacing: 0.08em;
+      min-height: 1.1em;
+      font-variant-numeric: tabular-nums;
+    }
+
     /* ── Next Exercise (shown during rest) ── */
     .next-exercise {
       display: flex;
@@ -1260,6 +1268,7 @@
       <div class="progress-fill" id="progress-fill" style="width:100%"></div>
     </div>
     <div class="next-up" id="next-up"></div>
+    <div class="elapsed-display" id="elapsed-display"></div>
   </div>
 
   <!-- Done banner -->
@@ -2184,6 +2193,11 @@ function resetTimer() {
 function updateTimerUI(left, phase) {
   const color = PHASE_COLORS[phase.type] || PHASE_COLORS.set;
   document.getElementById('time-display').textContent = fmtTime(left);
+
+  const completedSecs = T.phases.slice(0, T.idx).reduce((sum, p) => sum + p.duration, 0);
+  const currentElapsed = Math.min(phase.duration - Math.max(0, left), phase.duration);
+  const totalElapsed = Math.floor(completedSecs + currentElapsed);
+  document.getElementById('elapsed-display').textContent = `Elapsed: ${fmtTime(totalElapsed)}`;
   document.getElementById('progress-fill').style.width =
     ((left / phase.duration) * 100).toFixed(2) + '%';
   document.getElementById('progress-fill').style.background = color;
@@ -2250,6 +2264,7 @@ function renderDone() {
   document.getElementById('time-display').textContent = '00:00';
   document.getElementById('progress-fill').style.width = '0%';
   document.getElementById('next-up').textContent = '';
+  document.getElementById('elapsed-display').textContent = '';
   document.getElementById('next-exercise').classList.add('hidden');
   document.getElementById('done-banner').classList.remove('hidden');
   document.getElementById('btn-start').classList.add('hidden');
