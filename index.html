@@ -2098,6 +2098,7 @@ function advancePhase(ts) {
 }
 
 function startTimer() {
+  audioCtx(); // unlock AudioContext within the gesture handler; mobile Chrome requires this
   const cfg = readConfig();
   saveConfig();
   const phases = buildPhases(cfg);
@@ -2134,6 +2135,7 @@ function pauseTimer() {
 }
 
 function resumeTimer() {
+  audioCtx(); // re-unlock in case the context was suspended after backgrounding
   if (T.status !== 'paused') return;
   T.status = 'running';
   T.initNextTick = true;
@@ -2559,6 +2561,11 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'r' || e.key === 'R') {
     if (T.status !== 'idle') resetTimer();
   }
+});
+
+// Re-resume AudioContext when returning from background (screen lock, app switch)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _audioCtx?.state === 'suspended') _audioCtx.resume();
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
