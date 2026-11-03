@@ -49,6 +49,8 @@ Saved workouts use `u<timestamp>` IDs. Built-in template IDs are plain strings l
 `currentDetailId` — ID of the workout currently shown in detail view.  
 `currentEditWorkoutId` — when set, the Save button says "Update" and overwrites that saved workout.
 
+Keyboard: when the timer is idle, `1`–`9` open the Nth saved workout's detail view and `0` cycles to the next saved workout (wrapping) via `selectSavedWorkoutByKey()`. Saved cards show a number badge for the first 9.
+
 ### Exercise picker
 
 `EXERCISE_CATS` is the source of truth for categorised exercises. `PRESET_EXERCISES` is derived from it (`[...new Set(EXERCISE_CATS.flatMap(c => c.list))]`). The picker panel (`#ex-picker-panel`) is injected into the DOM inline below the triggering set button and removed on close. `activePickerSetIdx` and `activePickerCat` are module-level state.
